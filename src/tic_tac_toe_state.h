@@ -3,21 +3,22 @@
 
 #include "../include/state.h"
 #include <array>
+#include <cstdint>
 
-class TicTacToeState : public State<TicTacToeState, std::array<uint16_t, 2>> {
+class TicTacToeState : public State<TicTacToeState, std::array<std::uint16_t, 2>> {
   public:
     void print_bitboard() const override;
     TicTacToeState();
-    const std::array<uint16_t, 2> &get_bitboard() const {
+    const std::array<std::uint16_t, 2> &get_bitboard() const {
         return { board_ };
     }
-    void set_bitboard(std::array<uint16_t, 2> board) override;
+    void set_bitboard(std::array<std::uint16_t, 2> board) override;
     std::string state_to_string() override;
     void string_to_state(std::string state_str) override;
     int get_player() const override { return player; };
 
   private:
-    std::array<uint16_t, 2> board_ = {0, 0};
+    std::array<std::uint16_t, 2> board_ = {0, 0};
     int player = -1;
 };
 

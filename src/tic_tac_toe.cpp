@@ -1,6 +1,7 @@
 #include "../include/constants.h"
 #include "tic_tac_toe_state.h"
 #include <iostream>
+#include <cstdint>
 
 TicTacToeState::TicTacToeState() = default;
 
@@ -20,7 +21,7 @@ void TicTacToeState::print_bitboard() const {
     std::cout << std::endl;
 }
 
-void TicTacToeState::set_bitboard(std::array<uint16_t, 2> board) {
+void TicTacToeState::set_bitboard(std::array<std::uint16_t, 2> board) {
     this->board_ = board;
     // this->board_[1] = board[1];
 }
