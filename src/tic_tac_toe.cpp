@@ -1,31 +1,44 @@
-#include "../include/constants.h"
+#include "tic_tac_toe.h"
 #include "tic_tac_toe_state.h"
-#include <iostream>
+#include <cassert>
 #include <cstdint>
+#include <iostream>
 
-TicTacToeState::TicTacToeState() = default;
+TicTacToe::TicTacToe() = default;
 
-void TicTacToeState::print_bitboard() const {
-    for (int row = 0; row < 3; row++) {
-        for (int col = 0; col < 3; col++) {
-            int bit = (row * 3) + col;
-            if ((board_[0] >> bit) & 1)
-                std::cout << GREEN << "x " << RESET;
-            else if ((board_[1] >> bit) & 1)
-                std::cout << RED << "o " << RESET;
-            else
-                std::cout << ". ";
-        }
-        std::cout << "\n";
+void TicTacToe::reset(TicTacToeState &state) {
+    state.set_board({0, 0});
+    state.set_player(TicTacToeState::Player::One);
+}
+
+std::vector<int> TicTacToe::get_actions(const TicTacToeState &state) const {
+    std::vector<int> actions;
+    int16_t joined_bb = state.get_board()[0] | state.get_board()[1];
+    for (int i = 0; i < 9; i++) {
+        if (!((joined_bb >> i) & 1))
+            actions.push_back(i);
     }
-    std::cout << std::endl;
+    return actions;
 }
 
-void TicTacToeState::set_bitboard(std::array<std::uint16_t, 2> board) {
-    this->board_ = board;
-    // this->board_[1] = board[1];
+int TicTacToe::apply_action(TicTacToeState &state, int action) {
+    assert((action < 9) && (action > 0));
+    int16_t move = 1L << action;
+    std::array<std::uint16_t, 2> board = state.get_board();
+
+    if ((board[0] | board[1]) & move) {
+        std::cerr << "Attempting to place piece in occupied spot." << std::endl;
+        return 1;
+    }
+    board[static_cast<int>(state.get_player())] ^= move;
+    return 0;
 }
 
-std::string TicTacToeState::state_to_string() { return "";}
+int TicTacToe::undo_action(TicTacToeState &state, int action) {
+    assert((action < 9) && (action > 0));
+    int16_t move = 1L << action;
+    std::array<std::uint16_t, 2> board = state.get_board();
 
-void TicTacToeState::string_to_state(std::string state_str) {};
+    board[static_cast<int>(state.get_player())] ^= move;
+    return 0;
+}

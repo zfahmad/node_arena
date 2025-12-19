@@ -5,21 +5,24 @@
 #include <array>
 #include <cstdint>
 
-class TicTacToeState : public State<TicTacToeState, std::array<std::uint16_t, 2>> {
-  public:
-    void print_bitboard() const override;
+class TicTacToeState {
+public:
+    using BoardType = std::array<std::uint16_t, 2>;
+    enum class Player { One, Two };
+    void print_board();
     TicTacToeState();
-    const std::array<std::uint16_t, 2> &get_bitboard() const {
-        return { board_ };
-    }
-    void set_bitboard(std::array<std::uint16_t, 2> board) override;
-    std::string state_to_string() override;
-    void string_to_state(std::string state_str) override;
-    int get_player() const override { return player; };
+    const BoardType &get_board() const { return {board_}; }
+    void set_board(BoardType board);
+    std::string state_to_string();
+    void string_to_state(const std::string state_str);
+    Player get_player() const { return player_; };
+    void set_player(Player player) { player_ = player; }
 
-  private:
-    std::array<std::uint16_t, 2> board_ = {0, 0};
-    int player = -1;
+protected:
+    BoardType board_ = {0, 0};
+    Player player_ = Player::One;
 };
+
+static_assert(State<TicTacToeState, std::array<std::uint16_t, 2>>);
 
 #endif
