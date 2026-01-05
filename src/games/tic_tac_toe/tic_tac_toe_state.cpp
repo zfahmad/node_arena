@@ -4,8 +4,7 @@
 
 TicTacToeState::TicTacToeState() = default;
 
-void TicTacToeState::print_board()
-{
+void TicTacToeState::print_board() {
     // Print the board to screen.
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
@@ -26,13 +25,7 @@ void TicTacToeState::print_board()
 
 void TicTacToeState::set_board(BoardType board) { this->board_ = board; }
 
-// void TicTacToeState::set_board(std::array<std::uint16_t, 2> board) { 
-//     this->board_[TicTacToeState::Player::One] = board[0]; 
-//     this->board_[TicTacToeState::Player::Two] = board[1]; 
-// }
-
-std::string TicTacToeState::state_to_string()
-{
+std::string TicTacToeState::state_to_string() {
     // Converts the state representation to readable string.
     // First nine characters represent the board.
     // Last character is the current player at the state.
@@ -51,8 +44,7 @@ std::string TicTacToeState::state_to_string()
     return state_str;
 }
 
-void TicTacToeState::string_to_state(std::string state_str)
-{
+void TicTacToeState::string_to_state(std::string state_str) {
     board_[Player::One] = 0;
     board_[Player::Two] = 0;
     int count = 0;

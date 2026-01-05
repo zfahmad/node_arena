@@ -29,5 +29,15 @@ int main(int argc, char *argv[]) {
     for (const auto &action : actions)
         std::cout << action << " ";
     std::cout << std::endl;
+    TicTacToeState new_state = game.get_next_state(game_state, 4);
+    new_state.print_board();
+    new_state.string_to_state("2110122101");
+    new_state.print_board();
+    std::cout << game.is_winner(new_state, TicTacToeState::Player::One) << "\n";
+    std::cout << game.is_winner(new_state, TicTacToeState::Player::Two)
+              << std::endl;
+    new_state.string_to_state("2211122120");
+    new_state.print_board();
+    std::cout << game.is_draw(new_state) << std::endl;
     return 0;
 }

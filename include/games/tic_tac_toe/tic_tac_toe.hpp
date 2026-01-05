@@ -15,7 +15,9 @@ public:
     int apply_action(TicTacToeState &state, int action);
     int undo_action(TicTacToeState &state, int action);
     void reset(TicTacToeState &state);
-    bool is_winner(TicTacToeState $state, StateType::Player player);
+    bool is_winner(const TicTacToeState &state, StateType::Player player);
+    bool is_draw(const TicTacToeState &state);
+    TicTacToeState get_next_state(const TicTacToeState &state, int action);
 };
 
 static_assert(Game<TicTacToe>);
