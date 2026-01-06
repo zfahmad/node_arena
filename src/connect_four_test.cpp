@@ -1,4 +1,3 @@
-#include <bitset>
 #include <cstdint>
 #include <games/connect_four/connect_four.hpp>
 #include <games/connect_four/connect_four_state.hpp>
@@ -23,5 +22,15 @@ int main(int argc, char **argv) {
     for (int action : actions)
         std::cout << action << " ";
     std::cout << std::endl;
+    game.apply_action(state, 1);
+    state.print_board();
+    game.undo_action(state, 1);
+    state.print_board();
+    state.set_board(ConnectFourState::BoardType({0, 0}));
+    game.apply_action(state, 0);
+    state.print_board();
+    game.undo_action(state, 0);
+    state.print_board();
+
     return 0;
 }
