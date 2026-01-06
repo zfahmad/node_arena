@@ -1,7 +1,7 @@
 #ifndef TIC_TAC_TOE_STATE_HPP
 #define TIC_TAC_TOE_STATE_HPP
 
-#include "player.hpp"
+#include <player.hpp>
 #include <cstdint>
 #include <state.hpp>
 

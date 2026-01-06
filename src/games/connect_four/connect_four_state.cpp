@@ -1,3 +1,4 @@
+#include <charconv>
 #include <constants.hpp>
 #include <cstdint>
 #include <games/connect_four/connect_four_state.hpp>
@@ -6,14 +7,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <charconv>
 
 ConnectFourState::ConnectFourState(int num_rows, int num_cols) {
     if ((num_rows < 0) || (num_rows > 6) || (num_cols < 0) || (num_cols > 7)) {
         throw std::invalid_argument("Board dimensions must be valid sizes.");
     }
-    this->num_rows = num_rows;
-    this->num_cols = num_cols;
+    this->num_rows_ = num_rows;
+    this->num_cols_ = num_cols;
 }
 
 void ConnectFourState::print_board() {
@@ -21,9 +21,9 @@ void ConnectFourState::print_board() {
     // Skips the first num_cols bits as they are intended to be 0
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
-    uint64_t bit = (1 << this->num_cols);
-    for (int row = 0; row < this->num_rows; row++) {
-        for (int col = 0; col < this->num_cols; col++) {
+    uint64_t bit = (1 << this->num_cols_);
+    for (int row = 0; row < this->num_rows_; row++) {
+        for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
                 std::cout << GREEN << "x " << RESET;
             else if (board_[Player::Two] & bit)

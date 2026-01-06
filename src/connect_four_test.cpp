@@ -1,6 +1,7 @@
-#include "games/connect_four/connect_four_state.hpp"
 #include <bitset>
 #include <cstdint>
+#include <games/connect_four/connect_four.hpp>
+#include <games/connect_four/connect_four_state.hpp>
 #include <iostream>
 
 int main(int argc, char **argv) {
@@ -16,5 +17,11 @@ int main(int argc, char **argv) {
     state.print_board();
     state.string_to_state(state_str);
     state.print_board();
+
+    ConnectFour game = ConnectFour();
+    std::vector<int> actions = game.get_actions(state);
+    for (int action : actions)
+        std::cout << action << " ";
+    std::cout << std::endl;
     return 0;
 }
