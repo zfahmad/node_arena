@@ -1,5 +1,5 @@
 #include <cassert>
-#include <cstdint>
+// #include <cstdint>
 #include <games/tic_tac_toe/tic_tac_toe.hpp>
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
 #include <iostream>
@@ -9,9 +9,10 @@
 // However, this functionality needs to be added for solving games.
 
 using Player = typename TicTacToeState::Player;
+using BBType = typename TicTacToeState::BBType;
 
-constexpr int16_t WIN_MASKS[8] = {0x0007, 0x0038, 0x01C0, 0x0049,
-                                  0x0092, 0x0124, 0x0111, 0x0054};
+constexpr BBType WIN_MASKS[8] = {0x0007, 0x0038, 0x01C0, 0x0049,
+                                 0x0092, 0x0124, 0x0111, 0x0054};
 
 TicTacToe::TicTacToe() = default;
 
@@ -20,9 +21,10 @@ void TicTacToe::reset(TicTacToeState &state) {
     state.set_player(TicTacToeState::Player::One);
 }
 
-std::vector<int> TicTacToe::get_actions(const TicTacToeState &state) const {
-    std::vector<int> actions;
-    int16_t joined_bb =
+std::vector<TicTacToe::ActionType>
+TicTacToe::get_actions(const TicTacToeState &state) const {
+    std::vector<TicTacToe::ActionType> actions;
+    BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
     for (int i = 0; i < 9; i++) {
         if (!((joined_bb >> i) & 1))
@@ -31,9 +33,10 @@ std::vector<int> TicTacToe::get_actions(const TicTacToeState &state) const {
     return actions;
 }
 
-int TicTacToe::apply_action(TicTacToeState &state, int action) {
+int TicTacToe::apply_action(TicTacToeState &state,
+                            TicTacToe::ActionType action) {
     assert((action < 9) && (action > 0));
-    int16_t move = 1L << action;
+    BBType move = 1L << action;
     TicTacToeState::BoardType board = state.get_board();
 
     if (board[(Player::One)] | board[Player::Two] & move) {
@@ -45,9 +48,10 @@ int TicTacToe::apply_action(TicTacToeState &state, int action) {
     return 0;
 }
 
-int TicTacToe::undo_action(TicTacToeState &state, int action) {
+int TicTacToe::undo_action(TicTacToeState &state,
+                           TicTacToe::ActionType action) {
     assert((action < 9) && (action > 0));
-    int16_t move = 1L << action;
+    BBType move = 1L << action;
     TicTacToeState::BoardType board = state.get_board();
 
     board[state.get_player()] ^= move;
@@ -55,7 +59,7 @@ int TicTacToe::undo_action(TicTacToeState &state, int action) {
 }
 
 TicTacToeState TicTacToe::get_next_state(const TicTacToeState &state,
-                                         int action) {
+                                         TicTacToe::ActionType action) {
     TicTacToeState next_state = state;
     apply_action(next_state, action);
     if (state.get_player() == Player::One)
@@ -79,10 +83,10 @@ bool TicTacToe::is_draw(const TicTacToeState &state) {
     // Check if the state is a draw for both players
     // NOTE: This functions assumes the state was already checked for a winner
     // and will not check for a winner.
-    int16_t CLEAR_MASK = 0x01FF;
-    int16_t joined_bb =
+    BBType CLEAR_MASK = 0x01FF;
+    BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
-    int16_t masked_board = joined_bb & CLEAR_MASK;
+    BBType masked_board = joined_bb & CLEAR_MASK;
     if (masked_board == 511)
         return true;
     else

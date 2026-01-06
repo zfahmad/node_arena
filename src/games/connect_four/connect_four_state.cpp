@@ -21,7 +21,7 @@ void ConnectFourState::print_board() {
     // Skips the first num_cols bits as they are intended to be 0
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
-    uint64_t bit = (1 << this->num_cols_);
+    BBType bit = (1 << (this->num_cols_ + 1));
     for (int row = 0; row < this->num_rows_; row++) {
         for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
@@ -33,6 +33,7 @@ void ConnectFourState::print_board() {
             bit = (bit << 1);
         }
         std::cout << "\n";
+        bit = (bit << 1);
     }
     std::cout << std::endl;
 }
@@ -57,6 +58,7 @@ std::string ConnectFourState::state_to_string() {
         state_str += "0";
     else
         state_str += "1";
+    state_str += std::to_string(this->num_rows_) + std::to_string(this->num_cols_);
 
     return state_str;
 }
@@ -66,8 +68,10 @@ void ConnectFourState::string_to_state(std::string state_str) {
     auto r1 = std::from_chars(data, data + 16, board_[Player::One], 16);
     auto r2 = std::from_chars(data + 16, data + 32, board_[Player::Two], 16);
 
-    if (state_str.back() == '0')
+    if (state_str[32] == '0')
         player_ = Player::One;
     else
         player_ = Player::Two;
+    this->num_rows_ = state_str[33] - '0';
+    this->num_cols_ = state_str[34] - '0';
 };

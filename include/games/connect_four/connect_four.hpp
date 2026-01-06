@@ -11,13 +11,15 @@ public:
     using StateType = ConnectFourState;
 
     ConnectFour();
-    std::vector<int> get_actions(const ConnectFourState &state) const;
-    int apply_action(ConnectFourState &state, int action);
-    int undo_action(ConnectFourState &state, int action);
+    std::vector<ActionType> get_actions(const ConnectFourState &state) const;
+    int apply_action(ConnectFourState &state, ActionType action);
+    int undo_action(ConnectFourState &state, ActionType action);
     void reset(ConnectFourState &state);
     bool is_winner(const ConnectFourState &state, StateType::Player player);
     bool is_draw(const ConnectFourState &state);
-    ConnectFourState get_next_state(const ConnectFourState &state, int action);
+    ConnectFourState get_next_state(const ConnectFourState &state,
+                                    ActionType action);
+    bool shift_check(ConnectFourState::BBType board, int direction);
 };
 
 static_assert(Game<ConnectFour>);

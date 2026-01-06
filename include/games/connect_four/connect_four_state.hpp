@@ -8,7 +8,8 @@
 class ConnectFourState {
 public:
     enum class Player { One, Two };
-    using BoardType = PlayerIndexed<std::uint64_t, Player>;
+    using BBType = std::uint64_t;
+    using BoardType = PlayerIndexed<BBType, Player>;
 
     ConnectFourState(int num_rows = 6, int num_cols = 7);
     void print_board();

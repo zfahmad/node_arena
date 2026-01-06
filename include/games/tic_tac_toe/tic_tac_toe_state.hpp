@@ -8,7 +8,8 @@
 class TicTacToeState {
 public:
     enum class Player { One, Two };
-    using BoardType = PlayerIndexed<std::uint16_t, Player>;
+    using BBType = std::uint16_t;
+    using BoardType = PlayerIndexed<BBType, Player>;
 
     void print_board();
     TicTacToeState();
