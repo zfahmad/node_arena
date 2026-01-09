@@ -94,15 +94,18 @@ bool ConnectFour::shift_check(BBType board, int direction) {
 }
 
 bool ConnectFour::is_winner(const ConnectFourState &state, Player player) {
-    // Checks if the state is a win for player
+    // Checks if the state is a win for the player passed as an argument
+
+    // Creating array of directions for shifts
     int directions[] = {
-        state.get_num_cols() - 1,   // Shift up
-        1,                          // Shift right
-        state.get_num_cols() - 2,   // Shift up-left
-        state.get_num_cols()        // Shift up-right
+        state.get_num_cols() - 1, // Shift up
+        1,                        // Shift right
+        state.get_num_cols() - 2, // Shift up-left
+        state.get_num_cols()      // Shift up-right
     };
 
-    for ( int direction : directions ) {
+    // Checks each direction for four adjacent pieces for player
+    for (int direction : directions) {
         if (shift_check(state.get_board()[player], direction))
             return true;
     }
@@ -110,17 +113,26 @@ bool ConnectFour::is_winner(const ConnectFourState &state, Player player) {
     return false;
 }
 
-// bool ConnectFour::is_draw(const ConnectFourState &state) {
-//     // Check if the state is a draw for both players
-//     // NOTE: This functions assumes the state was already checked for a
-//     winner
-//     // and will not check for a winner.
-//     int16_t CLEAR_MASK = 0x01FF;
-//     int16_t joined_bb =
-//         state.get_board()[Player::One] | state.get_board()[Player::Two];
-//     int16_t masked_board = joined_bb & CLEAR_MASK;
-//     if (masked_board == 511)
-//         return true;
-//     else
-//         return false;
-// }
+bool ConnectFour::is_draw(const ConnectFourState &state) {
+    // Check if the state is a draw for both players.
+    // Draw occurs when the board is filled and there is neither player wins.
+    // NOTE: This functions assumes the state was already checked for a winner
+    // and will not check for a winner.
+    BBType bit = 1UL;
+    BBType CLEAR_MASK = 0UL;
+    bit = (bit << state.get_num_cols()) - 1;
+    bit = bit << (state.get_num_cols() + 1);
+    for (int i = 0; i < state.get_num_rows(); i++) {
+        CLEAR_MASK = CLEAR_MASK | bit;
+        bit = bit << (state.get_num_cols() + 1);
+    }
+
+    BBType joined_bb =
+        state.get_board()[Player::One] | state.get_board()[Player::Two];
+    BBType masked_board = joined_bb & CLEAR_MASK;
+    std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK << std::endl;
+    if (masked_board == CLEAR_MASK)
+        return true;
+    else
+        return false;
+}

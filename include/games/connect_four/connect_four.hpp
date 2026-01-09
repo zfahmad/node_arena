@@ -19,6 +19,8 @@ public:
     bool is_draw(const ConnectFourState &state);
     ConnectFourState get_next_state(const ConnectFourState &state,
                                     ActionType action);
+
+    // Connect Four specific functions
     bool shift_check(ConnectFourState::BBType board, int direction);
 };
 

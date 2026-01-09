@@ -1,50 +1,58 @@
 #include <charconv>
 #include <constants.hpp>
-#include <cstdint>
-#include <games/connect_four/connect_four_state.hpp>
+#include <games/othello/othello_state.hpp>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
-ConnectFourState::ConnectFourState(int num_rows, int num_cols) {
+OthelloState::OthelloState(int num_rows, int num_cols) {
     // WARN: Min size shouldn't be greater than 0. This is only for testing.
-    if ((num_rows < 0) || (num_rows > 6) || (num_cols < 0) || (num_cols > 7)) {
+    if ((num_rows < 0) || (num_rows > 8) || (num_cols < 0) || (num_cols > 8)) {
         throw std::invalid_argument("Board dimensions must be valid sizes.");
     }
     this->num_rows_ = num_rows;
     this->num_cols_ = num_cols;
+    this->board_ = {};
 }
 
-void ConnectFourState::print_board() {
+void OthelloState::print_board() {
     // Print the board to screen.
     // Skips the first num_cols bits as they are intended to be 0
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
-    BBType bit = (1 << (this->num_cols_ + 1));
+    BBType bit = 1UL;
     for (int row = 0; row < this->num_rows_; row++) {
         for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
                 // std::cout << GREEN << "x " << RESET;
+                // std::cout << GREEN << "\u25CB " << RESET;
                 std::cout << BLUE << "\u25CF " << RESET;
             else if (board_[Player::Two] & bit)
                 // std::cout << RED << "o " << RESET;
                 std::cout << RED << "\u25CF " << RESET;
             else
-                // std::cout << ". ";
+                // std::cout << "\xE2\x80\xA2 ";
                 std::cout << "\u25CB ";
             bit = (bit << 1);
         }
         std::cout << "\n";
-        bit = (bit << 1);
+        bit = (bit << (8 - this->get_num_cols()));
     }
     std::cout << std::endl;
 }
 
-void ConnectFourState::set_board(BoardType board) { this->board_ = board; }
+void OthelloState::set_board(BoardType board) { this->board_ = board; }
 
-std::string ConnectFourState::state_to_string() {
+OthelloState::Player OthelloState::get_opponent() const {
+    if (this->player_ == Player::One)
+        return Player::Two;
+    else
+        return Player::One;
+}
+
+std::string OthelloState::state_to_string() {
     // Converts the state representation to a string.
     // First sixteen characters represent the board for player one in hex.
     // First sixteen characters represent the board for player two in hex.
@@ -68,7 +76,7 @@ std::string ConnectFourState::state_to_string() {
     return state_str;
 }
 
-void ConnectFourState::string_to_state(std::string state_str) {
+void OthelloState::string_to_state(std::string state_str) {
     const char *data = state_str.data();
     auto r1 = std::from_chars(data, data + 16, board_[Player::One], 16);
     auto r2 = std::from_chars(data + 16, data + 32, board_[Player::Two], 16);
