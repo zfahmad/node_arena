@@ -22,6 +22,7 @@ public:
     void set_player(Player player) { player_ = player; }
     int get_num_cols() const { return num_cols_; }
     int get_num_rows() const { return num_rows_; }
+    int num_pieces(BBType board) const;
 
 protected:
     BoardType board_ = BoardType();

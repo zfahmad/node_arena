@@ -1,11 +1,11 @@
 #include <cassert>
 #include <games/othello/othello.hpp>
 #include <games/othello/othello_state.hpp>
-#include <iostream>
 
-// TODO: Currently the game does not check for validity of states. It is not
+// TODO: Currently Othello does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
 // However, this functionality needs to be added for solving games.
+// TODO: Implement undo actions for Othello
 
 using Player = typename OthelloState::Player;
 using BBType = typename OthelloState::BBType;
@@ -78,11 +78,18 @@ Othello::get_actions(const StateType &state) const {
         PAD_MASK |= PAD_MASK << 8;
     bb_moves &= PAD_MASK;
 
-    // StateType tmp_state = state;
-    // tmp_state.set_board(StateType::BoardType({bb_moves, 0ULL}));
-    // tmp_state.print_board();
+    bit = 1ULL;
+    for (int i = 0; i < state.get_num_rows() * state.get_num_cols(); i++) {
+        if (bit & bb_moves)
+            actions.push_back(i);
+        bit = (bit << 1);
+    }
 
     return actions;
+}
+
+bool Othello::has_actions(const StateType &state) {
+    return get_actions(state).size() > 0;
 }
 
 // TODO: Add checks for both apply_action and undo_action to ensure actions are
@@ -95,37 +102,35 @@ int Othello::apply_action(StateType &state, Othello::ActionType action) {
             (action < state.get_num_rows() * state.get_num_cols())) &&
            "Invalid action!");
 
-    BBType bit = 1ULL << action;
+    BBType bit, bounding_disk;
+    BBType captured = 0ULL;
+    BBType new_disk = 1ULL << action;
     int num_rows = state.get_num_rows();
     int num_cols = state.get_num_cols() + 1;
-    // Move piece to bottom of column
-    // bit = bit << (num_cols * num_rows);
     StateType::BoardType board = state.get_board();
     BBType joint_bb = board[Player::One] | board[Player::Two];
-
     assert(~(bit & joint_bb) && "Trying to place pieec in occupied cell.");
-    //
-    // // Move piece up column until empty spot found
-    // while (bit & joint_bb)
-    //     bit = (bit >> num_cols);
-    //
-    // board[state.get_player()] |= bit;
-    // state.set_board(board);
+
+    board[state.get_player()] |= new_disk;
+    for (int i = 0; i < 8; i++) {
+        bit = shift_and_mask(new_disk, i) & board[state.get_opponent()];
+        for (int j = 5; j < 5; j++) {
+            bit = shift_and_mask(bit, i) & board[state.get_opponent()];
+        }
+        bounding_disk = shift_and_mask(bit, i) & board[state.get_player()];
+        captured |= (bounding_disk ? bit : 0);
+    }
+
+    board[state.get_player()] ^= captured;
+    board[state.get_opponent()] ^= captured;
+    state.set_board(board);
+
     return 0;
 }
 
 int Othello::undo_action(StateType &state, Othello::ActionType action) {
-    // Removes the top piece located in the column denoted by action
-    BBType bit = 1ULL << action;
-    int num_rows = state.get_num_rows();
-    int num_cols = state.get_num_cols() + 1;
-    StateType::BoardType board = state.get_board();
-    BBType joint_bb = board[Player::One] | board[Player::Two];
-
-    while (bit ^ (bit & joint_bb))
-        bit = (bit << num_cols);
-    board[state.get_player()] ^= bit;
-    state.set_board(board);
+    // WARN: Undo is not implemented yet -- not necessary for AlphaZero but may
+    // be for solving
     return 0;
 }
 
@@ -143,34 +148,25 @@ Othello::StateType Othello::get_next_state(const StateType &state,
 bool Othello::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for the player passed as an argument
 
-    // Creating array of directions for shifts
+    // Check if state is terminal
+    if (has_actions(state))
+        return false;
 
-    // Checks each direction for four adjacent pieces for player
+    Player opponent = ((player == Player::One) ? Player::Two : Player::One);
 
-    return false;
+    StateType::BoardType board = state.get_board();
+    return state.num_pieces(board[player]) > state.num_pieces(board[opponent]);
 }
 
 bool Othello::is_draw(const StateType &state) {
     // Check if the state is a draw for both players.
     // Draw occurs when the board is filled and there is neither player wins.
-    // NOTE: This functions assumes the state was already checked for a winner
-    // and will not check for a winner.
-    BBType bit = 1ULL;
-    BBType CLEAR_MASK = 0ULL;
-    bit = (bit << state.get_num_cols()) - 1;
-    bit = bit << (state.get_num_cols() + 1);
-    for (int i = 0; i < state.get_num_rows(); i++) {
-        CLEAR_MASK = CLEAR_MASK | bit;
-        bit = bit << (state.get_num_cols() + 1);
-    }
 
-    BBType joined_bb =
-        state.get_board()[Player::One] | state.get_board()[Player::Two];
-    BBType masked_board = joined_bb & CLEAR_MASK;
-    std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK
-              << std::endl;
-    if (masked_board == CLEAR_MASK)
-        return true;
-    else
+    // Check if state is terminal
+    if (has_actions(state))
         return false;
+
+    StateType::BoardType board = state.get_board();
+    return state.num_pieces(board[state.get_player()]) ==
+           state.num_pieces(board[state.get_opponent()]);
 }

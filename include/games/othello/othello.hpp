@@ -25,6 +25,7 @@ public:
 
     Othello();
     std::vector<ActionType> get_actions(const StateType &state) const;
+    bool has_actions(const StateType &state);
     int apply_action(StateType &state, ActionType action);
     int undo_action(StateType &state, ActionType action);
     void reset(StateType &state);

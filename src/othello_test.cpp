@@ -7,24 +7,41 @@ int main(int argc, char **argv) {
     std::cout << "Testing othello...\n";
     OthelloState state = OthelloState(8, 8);
     OthelloState small_state = OthelloState(6, 6);
-    OthelloState smaller_state = OthelloState(5, 5);
+    OthelloState smaller_state = OthelloState(4, 4);
     Othello game = Othello();
+    std::vector<Othello::ActionType> actions;
 
     game.reset(state);
     state.print_board();
-    game.reset(small_state);
-    small_state.print_board();
-    game.reset(smaller_state);
-    smaller_state.print_board();
+    // game.reset(small_state);
+    // small_state.print_board();
+    // game.reset(smaller_state);
+    // smaller_state.print_board();
 
     // for ( auto shift : SHIFT_MASKS ) {
     //     OthelloState::BoardType bb = OthelloState::BoardType({shift, 0});
     //     state.set_board(bb);
     //     state.print_board();
     // }
-    game.get_actions(state);
-    game.get_actions(small_state);
-    game.get_actions(smaller_state);
+    actions = game.get_actions(state);
+    std::cout << actions.size() << "\n";
+    // game.get_actions(small_state);
+    // game.get_actions(smaller_state);
+    for ( auto action : actions )
+        std::cout << action << " ";
+    std::cout << std::endl;
+
+    state = game.get_next_state(state, actions[0]);
+    state.print_board();
+    actions = game.get_actions(state);
+    state = game.get_next_state(state, actions[1]);
+    state.print_board();
+    actions = game.get_actions(state);
+    state = game.get_next_state(state, actions[2]);
+    state.print_board();
+    actions = game.get_actions(state);
+    state = game.get_next_state(state, actions[2]);
+    state.print_board();
 
     // Othello game = Othello();
     // std::vector<int> actions = game.get_actions(state);
