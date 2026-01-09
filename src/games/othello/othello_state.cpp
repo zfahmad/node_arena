@@ -6,12 +6,17 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <cassert>
 
 OthelloState::OthelloState(int num_rows, int num_cols) {
-    // WARN: Min size shouldn't be greater than 0. This is only for testing.
-    if ((num_rows < 0) || (num_rows > 8) || (num_cols < 0) || (num_cols > 8)) {
-        throw std::invalid_argument("Board dimensions must be valid sizes.");
+    if ((num_rows < 4) || (num_rows > 8) || (num_cols < 4) || (num_cols > 8)) {
+        throw std::invalid_argument(
+            "Board dimensions must be valid sizes between 4 and 8.");
     }
+    if (!(num_rows % 2) | !(num_cols % 2)) {
+        throw std::invalid_argument("Board dimensions must be even.");
+    }
+
     this->num_rows_ = num_rows;
     this->num_cols_ = num_cols;
     this->board_ = {};
@@ -26,15 +31,15 @@ void OthelloState::print_board() {
     for (int row = 0; row < this->num_rows_; row++) {
         for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
-                // std::cout << GREEN << "x " << RESET;
-                // std::cout << GREEN << "\u25CB " << RESET;
-                std::cout << BLUE << "\u25CF " << RESET;
+                std::cout << GREEN << "x " << RESET;
+            // std::cout << GREEN << "\u25CB " << RESET;
+            // std::cout << BLUE << "\u25CF " << RESET;
             else if (board_[Player::Two] & bit)
-                // std::cout << RED << "o " << RESET;
-                std::cout << RED << "\u25CF " << RESET;
+                std::cout << RED << "o " << RESET;
+            // std::cout << RED << "\u25CF " << RESET;
             else
-                // std::cout << "\xE2\x80\xA2 ";
-                std::cout << "\u25CB ";
+                std::cout << ". ";
+            // std::cout << "\u25CB ";
             bit = (bit << 1);
         }
         std::cout << "\n";

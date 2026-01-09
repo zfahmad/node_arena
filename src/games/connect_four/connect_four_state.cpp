@@ -26,14 +26,14 @@ void ConnectFourState::print_board() {
     for (int row = 0; row < this->num_rows_; row++) {
         for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
-                // std::cout << GREEN << "x " << RESET;
-                std::cout << BLUE << "\u25CF " << RESET;
+                std::cout << GREEN << "x " << RESET;
+                // std::cout << BLUE << "\u25CF " << RESET;
             else if (board_[Player::Two] & bit)
-                // std::cout << RED << "o " << RESET;
-                std::cout << RED << "\u25CF " << RESET;
+                std::cout << RED << "o " << RESET;
+                // std::cout << RED << "\u25CF " << RESET;
             else
-                // std::cout << ". ";
-                std::cout << "\u25CB ";
+                std::cout << ". ";
+                // std::cout << "\u25CB ";
             bit = (bit << 1);
         }
         std::cout << "\n";

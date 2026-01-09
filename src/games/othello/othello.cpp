@@ -91,13 +91,19 @@ int Othello::apply_action(StateType &state, Othello::ActionType action) {
     // Adds a new piece to the column denoted by action
 
     // Move piece to column
+    assert(((action > 0) ||
+            (action < state.get_num_rows() * state.get_num_cols())) &&
+           "Invalid action!");
+
     BBType bit = 1ULL << action;
     int num_rows = state.get_num_rows();
     int num_cols = state.get_num_cols() + 1;
     // Move piece to bottom of column
     // bit = bit << (num_cols * num_rows);
-    // StateType::BoardType board = state.get_board();
-    // BBType joint_bb = board[Player::One] | board[Player::Two];
+    StateType::BoardType board = state.get_board();
+    BBType joint_bb = board[Player::One] | board[Player::Two];
+
+    assert(~(bit & joint_bb) && "Trying to place pieec in occupied cell.");
     //
     // // Move piece up column until empty spot found
     // while (bit & joint_bb)

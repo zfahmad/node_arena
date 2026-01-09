@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
     std::cout << "Testing othello...\n";
     OthelloState state = OthelloState(8, 8);
     OthelloState small_state = OthelloState(6, 6);
-    OthelloState smaller_state = OthelloState(4, 4);
+    OthelloState smaller_state = OthelloState(5, 5);
     Othello game = Othello();
 
     game.reset(state);
