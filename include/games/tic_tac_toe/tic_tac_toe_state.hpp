@@ -1,8 +1,8 @@
 #ifndef TIC_TAC_TOE_STATE_HPP
 #define TIC_TAC_TOE_STATE_HPP
 
-#include <player.hpp>
 #include <cstdint>
+#include <player.hpp>
 #include <state.hpp>
 
 class TicTacToeState {
@@ -11,8 +11,8 @@ public:
     using BBType = std::uint16_t;
     using BoardType = PlayerIndexed<BBType, Player>;
 
-    void print_board();
     TicTacToeState();
+    void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
     std::string state_to_string();
