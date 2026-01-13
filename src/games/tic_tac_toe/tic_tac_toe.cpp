@@ -17,7 +17,8 @@ constexpr BBType WIN_MASKS[8] = {0x0007, 0x0038, 0x01C0, 0x0049,
 TicTacToe::TicTacToe() = default;
 
 void TicTacToe::reset(TicTacToeState &state) {
-    state.set_board({});
+    BBType bb = 0x0000;
+    state.set_board(TicTacToeState::BoardType({bb, bb}));
     state.set_player(TicTacToeState::Player::One);
 }
 
@@ -39,7 +40,7 @@ int TicTacToe::apply_action(TicTacToeState &state,
     BBType move = 1L << action;
     TicTacToeState::BoardType board = state.get_board();
 
-    if (board[(Player::One)] | board[Player::Two] & move) {
+    if ((board[(Player::One)] | board[Player::Two]) & move) {
         std::cerr << "Attempting to place piece in occupied spot." << std::endl;
         return 1;
     }
