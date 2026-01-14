@@ -1,6 +1,5 @@
 #include <charconv>
 #include <constants.hpp>
-#include <cstdint>
 #include <games/connect_four/connect_four_state.hpp>
 #include <iomanip>
 #include <iostream>
@@ -23,17 +22,23 @@ void ConnectFourState::print_board() {
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
     BBType bit = (1 << (this->num_cols_ + 1));
+    std::cout << " ";
+    for (int i = 0; i < this->num_cols_; i++) {
+        std::cout << GRAY << i << " ";
+    }
+    std::cout << RESET << "\n";
     for (int row = 0; row < this->num_rows_; row++) {
+        std::cout << " ";
         for (int col = 0; col < this->num_cols_; col++) {
             if (board_[Player::One] & bit)
-                std::cout << GREEN << "x " << RESET;
-                // std::cout << BLUE << "\u25CF " << RESET;
+                // std::cout << GREEN << "x " << RESET;
+                std::cout << BLUE << FILL_CIRCLE << " " << RESET;
             else if (board_[Player::Two] & bit)
-                std::cout << RED << "o " << RESET;
-                // std::cout << RED << "\u25CF " << RESET;
+                // std::cout << RED << "o " << RESET;
+                std::cout << RED << FILL_CIRCLE << " " << RESET;
             else
-                std::cout << ". ";
-                // std::cout << "\u25CB ";
+                // std::cout << ". ";
+                std::cout << CIRCLE << " ";
             bit = (bit << 1);
         }
         std::cout << "\n";

@@ -6,12 +6,8 @@
 
 namespace nb = nanobind;
 
-int add(int a, int b) { return a + b; }
-
 NB_MODULE(tic_tac_toe_wrapper, m) {
-    m.def("add", &add);
-
-    nb::class_<TicTacToeState>(m, "TicTacToeState")
+    nb::class_<TicTacToeState>(m, "State")
         .def(nb::init<>())
         .def("print_board", &TicTacToeState::print_board)
         .def("state_to_string", &TicTacToeState::state_to_string)
@@ -23,7 +19,7 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .value("One", TicTacToeState::Player::One)
         .value("Two", TicTacToeState::Player::Two);
 
-    nb::class_<TicTacToe>(m, "TicTacToe")
+    nb::class_<TicTacToe>(m, "Game")
         .def(nb::init<>())
         .def("reset", &TicTacToe::reset)
         .def("get_actions", &TicTacToe::get_actions)

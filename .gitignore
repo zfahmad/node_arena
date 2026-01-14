@@ -2,6 +2,7 @@
 .cache
 **/.DS_Store
 /python/wrapper/*
+**/__pycache__
 
 # Prerequisites
 *.d

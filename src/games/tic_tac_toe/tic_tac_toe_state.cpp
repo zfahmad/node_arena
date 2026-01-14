@@ -9,14 +9,15 @@ void TicTacToeState::print_board() {
     // LSB of the bit representation is top-left cell;
     // MSB of the bit representation is bottom-right.
     for (int row = 0; row < 3; row++) {
+        std::cout << GRAY << " " << (row * 3) << " ";
         for (int col = 0; col < 3; col++) {
             int bit = (row * 3) + col;
             if ((board_[Player::One] >> bit) & 1)
-                std::cout << GREEN << "x " << RESET;
+                std::cout << GREEN << CROSS << " ";
             else if ((board_[Player::Two] >> bit) & 1)
-                std::cout << RED << "o " << RESET;
+                std::cout << RED << NAUGHT << " ";
             else
-                std::cout << ". ";
+                std::cout << RESET << DOT << " ";
         }
         std::cout << "\n";
     }
