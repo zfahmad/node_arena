@@ -12,16 +12,16 @@ using BBType = typename ConnectFourState::BBType;
 
 ConnectFour::ConnectFour() = default;
 
-void ConnectFour::reset(ConnectFourState &state) {
+void ConnectFour::reset(StateType &state) {
     state.set_board({});
-    state.set_player(ConnectFourState::Player::One);
+    state.set_player(Player::One);
 }
 
 std::vector<ConnectFour::ActionType>
-ConnectFour::get_actions(const ConnectFourState &state) const {
+ConnectFour::get_actions(const StateType &state) const {
     // Returns a vector of columns with empty space i.e., enough space to add a
     // piece.
-    std::vector<ConnectFour::ActionType> actions;
+    std::vector<ActionType> actions;
     int num_cols = state.get_num_cols();
     BBType bit = (1L << (num_cols + 1));
     BBType joint_bb =
@@ -37,8 +37,7 @@ ConnectFour::get_actions(const ConnectFourState &state) const {
 
 // TODO: Add checks for both apply_action and undo_action to ensure actions are
 // valid.
-int ConnectFour::apply_action(ConnectFourState &state,
-                              ConnectFour::ActionType action) {
+int ConnectFour::apply_action(StateType &state, ActionType action) {
     // Adds a new piece to the column denoted by action
 
     // Move piece to column
@@ -47,7 +46,7 @@ int ConnectFour::apply_action(ConnectFourState &state,
     int num_cols = state.get_num_cols() + 1;
     // Move piece to bottom of column
     bit = bit << (num_cols * num_rows);
-    ConnectFourState::BoardType board = state.get_board();
+    StateType::BoardType board = state.get_board();
     BBType joint_bb = board[Player::One] | board[Player::Two];
 
     // Move piece up column until empty spot found
@@ -59,13 +58,12 @@ int ConnectFour::apply_action(ConnectFourState &state,
     return 0;
 }
 
-int ConnectFour::undo_action(ConnectFourState &state,
-                             ConnectFour::ActionType action) {
+int ConnectFour::undo_action(StateType &state, ActionType action) {
     // Removes the top piece located in the column denoted by action
     BBType bit = 1L << action;
     int num_rows = state.get_num_rows();
     int num_cols = state.get_num_cols() + 1;
-    ConnectFourState::BoardType board = state.get_board();
+    StateType::BoardType board = state.get_board();
     BBType joint_bb = board[Player::One] | board[Player::Two];
 
     while (bit ^ (bit & joint_bb))
@@ -75,9 +73,9 @@ int ConnectFour::undo_action(ConnectFourState &state,
     return 0;
 }
 
-ConnectFourState ConnectFour::get_next_state(const ConnectFourState &state,
-                                             ConnectFour::ActionType action) {
-    ConnectFourState next_state = state;
+ConnectFour::StateType ConnectFour::get_next_state(const StateType &state,
+                                                   ActionType action) {
+    StateType next_state = state;
     apply_action(next_state, action);
     if (state.get_player() == Player::One)
         next_state.set_player(Player::Two);
@@ -93,7 +91,7 @@ bool ConnectFour::shift_check(BBType board, int direction) {
     return (is_four != 0);
 }
 
-bool ConnectFour::is_winner(const ConnectFourState &state, Player player) {
+bool ConnectFour::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for the player passed as an argument
 
     // Creating array of directions for shifts
@@ -113,7 +111,7 @@ bool ConnectFour::is_winner(const ConnectFourState &state, Player player) {
     return false;
 }
 
-bool ConnectFour::is_draw(const ConnectFourState &state) {
+bool ConnectFour::is_draw(const StateType &state) {
     // Check if the state is a draw for both players.
     // Draw occurs when the board is filled and there is neither player wins.
     // NOTE: This functions assumes the state was already checked for a winner
@@ -130,9 +128,20 @@ bool ConnectFour::is_draw(const ConnectFourState &state) {
     BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
     BBType masked_board = joined_bb & CLEAR_MASK;
-    std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK << std::endl;
+    std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK
+              << std::endl;
     if (masked_board == CLEAR_MASK)
         return true;
     else
         return false;
+}
+
+bool ConnectFour::is_terminal(const StateType &state) {
+    if (is_winner(state, Player::One))
+        return true;
+    if (is_winner(state, Player::Two))
+        return true;
+    if (is_draw(state))
+        return true;
+    return false;
 }

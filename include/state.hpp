@@ -17,6 +17,7 @@ concept State =
         { s.get_board() } -> std::same_as<const typename S::BoardType &>;
         { s.set_board(board) } -> std::same_as<void>;
         { s.get_player() } -> std::same_as<typename S::Player>;
+        { s.get_opponent() } -> std::same_as<typename S::Player>;
         { s.set_player(player) } -> std::same_as<void>;
 
         // Functions used for converting from a state to a printable string.

@@ -94,7 +94,7 @@ bool Othello::has_actions(const StateType &state) {
 
 // TODO: Add checks for both apply_action and undo_action to ensure actions are
 // valid.
-int Othello::apply_action(StateType &state, Othello::ActionType action) {
+int Othello::apply_action(StateType &state, ActionType action) {
     // Adds a new piece to the column denoted by action
 
     // Move piece to column
@@ -128,14 +128,14 @@ int Othello::apply_action(StateType &state, Othello::ActionType action) {
     return 0;
 }
 
-int Othello::undo_action(StateType &state, Othello::ActionType action) {
+int Othello::undo_action(StateType &state, ActionType action) {
     // WARN: Undo is not implemented yet -- not necessary for AlphaZero but may
     // be for solving
     return 0;
 }
 
 Othello::StateType Othello::get_next_state(const StateType &state,
-                                           Othello::ActionType action) {
+                                           ActionType action) {
     StateType next_state = state;
     apply_action(next_state, action);
     if (state.get_player() == Player::One)
@@ -149,7 +149,7 @@ bool Othello::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for the player passed as an argument
 
     // Check if state is terminal
-    if (has_actions(state))
+    if (is_terminal(state))
         return false;
 
     Player opponent = ((player == Player::One) ? Player::Two : Player::One);
@@ -163,10 +163,24 @@ bool Othello::is_draw(const StateType &state) {
     // Draw occurs when the board is filled and there is neither player wins.
 
     // Check if state is terminal
-    if (has_actions(state))
+    if (is_terminal(state))
         return false;
 
     StateType::BoardType board = state.get_board();
     return state.num_pieces(board[state.get_player()]) ==
            state.num_pieces(board[state.get_opponent()]);
+}
+
+bool Othello::is_terminal(const StateType &state) {
+    // Terminal states in Othello are states in which neither player has an
+    // action. This occurs when the board is full or when neither player can
+    // place a piece such that it flips opponent tokens.
+    StateType tmp_state = state;
+    tmp_state.set_player(state.get_opponent());
+    bool player_actions = has_actions(state);
+    bool opponent_actions = has_actions(tmp_state);
+    if (!player_actions && !opponent_actions)
+        return true;
+    else
+        return false;
 }

@@ -11,14 +11,15 @@ public:
     using StateType = TicTacToeState;
 
     TicTacToe();
-    std::vector<ActionType> get_actions(const TicTacToeState &state) const;
-    int apply_action(TicTacToeState &state, ActionType action);
-    int undo_action(TicTacToeState &state, ActionType action);
-    void reset(TicTacToeState &state);
-    bool is_winner(const TicTacToeState &state, StateType::Player player);
-    bool is_draw(const TicTacToeState &state);
+    void reset(StateType &state);
+    std::vector<ActionType> get_actions(const StateType &state) const;
+    int apply_action(StateType &state, ActionType action);
+    int undo_action(StateType &state, ActionType action);
     TicTacToeState get_next_state(const TicTacToeState &state,
                                   ActionType action);
+    bool is_winner(const StateType &state, StateType::Player player);
+    bool is_draw(const StateType &state);
+    bool is_terminal(const StateType &state);
 };
 
 static_assert(Game<TicTacToe>);

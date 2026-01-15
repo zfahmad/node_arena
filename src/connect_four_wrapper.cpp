@@ -26,5 +26,6 @@ NB_MODULE(connect_four_wrapper, m) {
         .def("apply_action", &ConnectFour::apply_action)
         .def("get_next_state", &ConnectFour::get_next_state)
         .def("is_winner", &ConnectFour::is_winner)
-        .def("is_draw", &ConnectFour::is_draw);
+        .def("is_draw", &ConnectFour::is_draw)
+        .def("is_terminal", &ConnectFour::is_terminal);
 }

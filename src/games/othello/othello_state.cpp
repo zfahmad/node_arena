@@ -47,13 +47,6 @@ void OthelloState::print_board() {
 
 void OthelloState::set_board(BoardType board) { this->board_ = board; }
 
-OthelloState::Player OthelloState::get_opponent() const {
-    if (this->player_ == Player::One)
-        return Player::Two;
-    else
-        return Player::One;
-}
-
 std::string OthelloState::state_to_string() {
     // Converts the state representation to a string.
     // First sixteen characters represent the board for player one in hex.

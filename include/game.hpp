@@ -13,6 +13,7 @@ concept Game = requires(G g, G::StateType state, G::ActionType action,
     { g.undo_action(state, action) } -> std::same_as<int>;
     { g.reset(state) } -> std::same_as<void>;
     { g.is_winner(state, player) } -> std::same_as<bool>;
+    { g.is_terminal(state) } -> std::same_as<bool>;
 };
 
 #endif

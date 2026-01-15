@@ -1,8 +1,8 @@
 #ifndef CONNECT_FOUR_STATE_HPP
 #define CONNECT_FOUR_STATE_HPP
 
-#include <player.hpp>
 #include <cstdint>
+#include <player.hpp>
 #include <state.hpp>
 
 class ConnectFourState {
@@ -18,6 +18,9 @@ public:
     std::string state_to_string();
     void string_to_state(const std::string state_str);
     Player get_player() const { return player_; };
+    Player get_opponent() const {
+        return (player_ == Player::One) ? Player::Two : Player::One;
+    }
     void set_player(Player player) { player_ = player; }
     int get_num_cols() const { return num_cols_; }
     int get_num_rows() const { return num_rows_; }

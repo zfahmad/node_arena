@@ -26,5 +26,6 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .def("apply_action", &TicTacToe::apply_action)
         .def("get_next_state", &TicTacToe::get_next_state)
         .def("is_winner", &TicTacToe::is_winner)
-        .def("is_draw", &TicTacToe::is_draw);
+        .def("is_draw", &TicTacToe::is_draw)
+        .def("is_terminal", &TicTacToe::is_terminal);
 }

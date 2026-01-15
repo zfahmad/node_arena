@@ -14,11 +14,12 @@ public:
     std::vector<ActionType> get_actions(const ConnectFourState &state) const;
     int apply_action(ConnectFourState &state, ActionType action);
     int undo_action(ConnectFourState &state, ActionType action);
+    ConnectFourState get_next_state(const ConnectFourState &state,
+                                    ActionType action);
     void reset(ConnectFourState &state);
     bool is_winner(const ConnectFourState &state, StateType::Player player);
     bool is_draw(const ConnectFourState &state);
-    ConnectFourState get_next_state(const ConnectFourState &state,
-                                    ActionType action);
+    bool is_terminal(const ConnectFourState &state);
 
     // Connect Four specific functions
     bool shift_check(ConnectFourState::BBType board, int direction);

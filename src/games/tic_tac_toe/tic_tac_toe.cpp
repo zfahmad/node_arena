@@ -91,3 +91,10 @@ bool TicTacToe::is_draw(const TicTacToe::StateType &state) {
     else
         return false;
 }
+
+bool TicTacToe::is_terminal(const TicTacToe::StateType &state) {
+    if (is_winner(state, Player::One)) return true;
+    if (is_winner(state, Player::Two)) return true;
+    if (is_draw(state)) return true;
+    return false;
+}

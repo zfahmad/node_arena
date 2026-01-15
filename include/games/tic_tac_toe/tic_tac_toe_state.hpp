@@ -18,6 +18,9 @@ public:
     std::string state_to_string();
     void string_to_state(const std::string state_str);
     Player get_player() const { return player_; };
+    Player get_opponent() const {
+        return (player_ == Player::One) ? Player::Two : Player::One;
+    }
     void set_player(Player player) { player_ = player; }
 
 protected:

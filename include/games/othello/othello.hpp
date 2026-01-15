@@ -28,10 +28,11 @@ public:
     bool has_actions(const StateType &state);
     int apply_action(StateType &state, ActionType action);
     int undo_action(StateType &state, ActionType action);
+    OthelloState get_next_state(const StateType &state, ActionType action);
     void reset(StateType &state);
     bool is_winner(const StateType &state, StateType::Player player);
     bool is_draw(const StateType &state);
-    OthelloState get_next_state(const StateType &state, ActionType action);
+    bool is_terminal(const StateType &state);
 };
 
 static_assert(Game<Othello>);

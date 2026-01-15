@@ -38,5 +38,6 @@ int main(int argc, char *argv[]) {
     new_state.string_to_state("2211122120");
     new_state.print_board();
     std::cout << game.is_draw(new_state) << std::endl;
+    std::cout << static_cast<int>(new_state.get_player()) << std::endl;
     return 0;
 }
