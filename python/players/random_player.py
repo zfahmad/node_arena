@@ -13,8 +13,11 @@ from python.game_protocols import ActionType, Game, State
 
 
 class RandomPlayer(Generic[ActionType]):
-    def __init__(self, seed: int = 0) -> None:
-        self._rand = random.Random(seed)
+    def __init__(self, seed: int | None) -> None:
+        if seed is not None:
+            self._rand = random.Random(seed)
+        else:
+            self._rand = random.Random()
 
     def select_action(self, game: Game, state: State) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
