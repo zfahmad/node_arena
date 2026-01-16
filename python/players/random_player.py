@@ -7,12 +7,12 @@ A random player that selects a random action at each game state.
 """
 
 import random
-from typing import Generic
 
 from python.game_protocols import ActionType, Game, State
+from python.players.player_protocols import Player
 
 
-class RandomPlayer(Generic[ActionType]):
+class RandomPlayer(Player[ActionType]):
     def __init__(self, seed: int | None) -> None:
         if seed is not None:
             self._rand = random.Random(seed)
