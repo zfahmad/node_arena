@@ -1,3 +1,4 @@
+#include <bitset>
 #include <cassert>
 #include <games/connect_four/connect_four.hpp>
 #include <games/connect_four/connect_four_state.hpp>
@@ -28,7 +29,7 @@ ConnectFour::get_actions(const StateType &state) const {
         state.get_board()[Player::One] | state.get_board()[Player::Two];
 
     for (int i = 0; i < num_cols; i++) {
-        if (joint_bb ^ bit)
+        if ((joint_bb ^ bit) & bit)
             actions.push_back(i);
         bit = (bit << 1);
     }
@@ -85,10 +86,19 @@ ConnectFour::StateType ConnectFour::get_next_state(const StateType &state,
 }
 
 bool ConnectFour::shift_check(BBType board, int direction) {
+    BBType CLEAR_MASK = 0UL;
+    // board = board && CLEAR_MASK;
     BBType is_four = board;
-    for (int i = 1; i < 4; i++)
-        is_four &= (board << (i * direction));
-    return (is_four != 0);
+    if (direction == 1) {
+        for (int i = 1; i < 4; i++)
+            is_four &= (board << (i * direction));
+    } else {
+        for (int i = 1; i < 4; i++)
+            is_four &= (board >> (i * direction));
+    }
+    if (is_four != 0)
+        return true;
+    return false;
 }
 
 bool ConnectFour::is_winner(const StateType &state, Player player) {
@@ -96,16 +106,29 @@ bool ConnectFour::is_winner(const StateType &state, Player player) {
 
     // Creating array of directions for shifts
     int directions[] = {
-        state.get_num_cols() - 1, // Shift up
+        state.get_num_cols() + 1, // Shift up
         1,                        // Shift right
-        state.get_num_cols() - 2, // Shift up-left
+        state.get_num_cols() + 2, // Shift up-left
         state.get_num_cols()      // Shift up-right
     };
 
     // Checks each direction for four adjacent pieces for player
+    BBType bit = 1UL;
+    BBType CLEAR_MASK = 0UL;
+    bit = (bit << state.get_num_cols()) - 1;
+    bit = bit << (state.get_num_cols() + 1);
+    for (int i = 0; i < state.get_num_rows(); i++) {
+        CLEAR_MASK = CLEAR_MASK | bit;
+        bit = bit << (state.get_num_cols() + 1);
+    }
+    std::cout << "Player: " << static_cast<int>(player) << std::endl;
+    std::cout << std::bitset<64>(CLEAR_MASK) << std::endl;
+    BBType board = state.get_board()[player] & CLEAR_MASK;
     for (int direction : directions) {
-        if (shift_check(state.get_board()[player], direction))
+        std::cout << direction << std::endl;
+        if (shift_check(board, direction)) {
             return true;
+        }
     }
 
     return false;
@@ -121,15 +144,15 @@ bool ConnectFour::is_draw(const StateType &state) {
     bit = (bit << state.get_num_cols()) - 1;
     bit = bit << (state.get_num_cols() + 1);
     for (int i = 0; i < state.get_num_rows(); i++) {
-        CLEAR_MASK = CLEAR_MASK | bit;
         bit = bit << (state.get_num_cols() + 1);
+        CLEAR_MASK = CLEAR_MASK | bit;
     }
 
     BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
     BBType masked_board = joined_bb & CLEAR_MASK;
-    std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK
-              << std::endl;
+    // std::cout << joined_bb << " " << masked_board << " " << CLEAR_MASK
+    //           << std::endl;
     if (masked_board == CLEAR_MASK)
         return true;
     else

@@ -1,5 +1,5 @@
-#include <games/connect_four/connect_four_state.hpp>
 #include <games/connect_four/connect_four.hpp>
+#include <games/connect_four/connect_four_state.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -7,20 +7,28 @@
 namespace nb = nanobind;
 
 NB_MODULE(connect_four_wrapper, m) {
-    nb::class_<ConnectFourState>(m, "State")
-        .def(nb::init<>())
-        .def("print_board", &ConnectFourState::print_board)
-        .def("state_to_string", &ConnectFourState::state_to_string)
-        .def("string_to_state", &ConnectFourState::string_to_state)
-        .def("get_player", &ConnectFourState::get_player)
-        .def("set_player", &ConnectFourState::set_player);
-
     nb::enum_<ConnectFourState::Player>(m, "Player")
         .value("One", ConnectFourState::Player::One)
         .value("Two", ConnectFourState::Player::Two);
 
-    nb::class_<ConnectFour>(m, "Game")
-        .def(nb::init<>())
+    nb::class_<ConnectFourState> state_class(m, "State");
+    state_class.def(nb::init<>())
+        .def("print_board", &ConnectFourState::print_board)
+        .def("state_to_string", &ConnectFourState::state_to_string)
+        .def("string_to_state", &ConnectFourState::string_to_state)
+        .def("get_player", &ConnectFourState::get_player)
+        .def("get_opponent", &ConnectFourState::get_opponent)
+        .def("set_player", &ConnectFourState::set_player);
+    state_class.attr("Player") = m.attr("Player");
+
+    nb::enum_<ConnectFour::Outcomes>(m, "Outcomes")
+        .value("NonTerminal", ConnectFour::Outcomes::NonTerminal)
+        .value("P1Win", ConnectFour::Outcomes::P1Win)
+        .value("P2Win", ConnectFour::Outcomes::P2Win)
+        .value("Draw", ConnectFour::Outcomes::Draw);
+
+    nb::class_<ConnectFour> game_class(m, "Game");
+    game_class.def(nb::init<>())
         .def("reset", &ConnectFour::reset)
         .def("get_actions", &ConnectFour::get_actions)
         .def("apply_action", &ConnectFour::apply_action)
@@ -29,10 +37,5 @@ NB_MODULE(connect_four_wrapper, m) {
         .def("is_draw", &ConnectFour::is_draw)
         .def("is_terminal", &ConnectFour::is_terminal)
         .def("get_outcome", &ConnectFour::get_outcome);
-
-    nb::enum_<ConnectFour::Outcomes>(m, "Outcomes")
-        .value("NonTerminal", ConnectFour::Outcomes::NonTerminal)
-        .value("P1Win", ConnectFour::Outcomes::P1Win)
-        .value("P2Win", ConnectFour::Outcomes::P2Win)
-        .value("Draw", ConnectFour::Outcomes::Draw);
+    game_class.attr("Outcomes") = m.attr("Outcomes");
 }

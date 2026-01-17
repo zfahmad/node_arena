@@ -1,5 +1,5 @@
-#include <games/tic_tac_toe/tic_tac_toe.hpp>
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
+#include <games/tic_tac_toe/tic_tac_toe.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -12,13 +12,15 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .value("Two", TicTacToeState::Player::Two);
 
     nb::class_<TicTacToeState> state_class(m, "State");
-    state_class.def(nb::init<>())
+    state_class
+        .def(nb::init<>())
         .def("print_board", &TicTacToeState::print_board)
         .def("state_to_string", &TicTacToeState::state_to_string)
         .def("string_to_state", &TicTacToeState::string_to_state)
         .def("get_player", &TicTacToeState::get_player)
         .def("get_opponent", &TicTacToeState::get_opponent)
         .def("set_player", &TicTacToeState::set_player);
+
     state_class.attr("Player") = m.attr("Player");
 
     nb::enum_<TicTacToe::Outcomes>(m, "Outcomes")
@@ -28,7 +30,8 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .value("Draw", TicTacToe::Outcomes::Draw);
 
     nb::class_<TicTacToe> game_class(m, "Game");
-    game_class.def(nb::init<>())
+    game_class
+        .def(nb::init<>())
         .def("reset", &TicTacToe::reset)
         .def("get_actions", &TicTacToe::get_actions)
         .def("apply_action", &TicTacToe::apply_action)
@@ -37,5 +40,6 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .def("is_draw", &TicTacToe::is_draw)
         .def("is_terminal", &TicTacToe::is_terminal)
         .def("get_outcome", &TicTacToe::get_outcome);
+
     game_class.attr("Outcomes") = m.attr("Outcomes");
 }

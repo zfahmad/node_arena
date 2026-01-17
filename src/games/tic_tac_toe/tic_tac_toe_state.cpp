@@ -21,7 +21,7 @@ void TicTacToeState::print_board() {
         }
         std::cout << "\n";
     }
-    std::cout << std::endl;
+    std::cout << RESET << std::endl;
 }
 
 void TicTacToeState::set_board(BoardType board) { this->board_ = board; }
@@ -31,17 +31,21 @@ std::string TicTacToeState::state_to_string() {
     // First nine characters represent the board.
     // Last character is the current player at the state.
     std::string state_str = "";
+    BoardType board = board_;
     for (int i = 0; i < 9; i++) {
-        if (board_[Player::One] & 1)
+        if (board[Player::One] & 1)
             state_str += '1';
-        else if (board_[Player::Two] & 1)
+        else if (board[Player::Two] & 1)
             state_str += '2';
         else
             state_str += '0';
-        board_[Player::One] = (board_[Player::One] >> 1);
-        board_[Player::Two] = (board_[Player::Two] >> 1);
+        board[Player::One] = (board[Player::One] >> 1);
+        board[Player::Two] = (board[Player::Two] >> 1);
     }
-    state_str += static_cast<char>(player_);
+    if (player_ == Player::One)
+        state_str += "0";
+    else
+        state_str += "1";
     return state_str;
 }
 

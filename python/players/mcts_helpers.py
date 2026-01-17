@@ -1,8 +1,11 @@
+from typing import Generic, Protocol
+from enum import Enum
+
 import numpy as np
 import numpy.random as rnd
-from typing import Generic, Protocol
 
-from python.game_protocols import ActionType, State
+from python.game_protocols import ActionType, State, Game
+
 
 class Edge(Generic[ActionType]):
     # Edge objects to represent actions taken at a state
@@ -26,20 +29,25 @@ class Edge(Generic[ActionType]):
 
 class Node(Generic[ActionType]):
     # Node objects to represent states in the search tree
-    __slots__ = ("state", "N", "actions")
+    __slots__ = ("state", "V", "N", "edges","unexpanded_actions")
 
     def __init__(self, state: State) -> None:
         self.state: State = state
+        self.V: float = 0.0
         self.N: int = 0
-        self.actions: list["Edge"] = []
+        self.edges: list["Edge"] = []
+        self.unexpanded_actions: list[ActionType] = []
 
     def __repr__(self):
-        return f"State: {self.state.state_to_string} N: {self.N}"
+        return f"State: {self.state.state_to_string()} V: {self.V} N: {self.N}"
 
 
 class EdgePolicy(Protocol):
     def __call__(self, edges: list[Edge]) -> Edge: ...
 
+
+class EvaluationFunction(Protocol):
+    def __call__(self, game: Game, state: State) -> Enum: ...
 
 
 class UCB(EdgePolicy):
@@ -95,3 +103,25 @@ class LCB(EdgePolicy):
         index = self.rand.choice(indices)
 
         return edges[index]
+
+
+class RandomRollout(EvaluationFunction):
+    def __init__(self, seed: int, max_depth: int):
+        self.rand = rnd.default_rng(seed)
+        self.max_depth = max_depth
+
+    def rollout(self, game: Game, state: State) -> Enum:
+        state.print_board()
+        if game.is_terminal(state):
+            return game.get_outcome(state)
+        
+        actions = game.get_actions(state)
+        print(actions)
+        random_action = self.rand.choice(actions)
+        next_state = game.get_next_state(state, random_action)
+        return self.rollout(game, next_state)
+
+
+    def __call__(self, game: Game, state: State) -> Enum:
+        return self.rollout(game, state)
+

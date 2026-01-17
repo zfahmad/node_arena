@@ -1,6 +1,11 @@
 import enum
 
 
+class Player(enum.Enum):
+    One = 0
+
+    Two = 1
+
 class State:
     def __init__(self) -> None: ...
 
@@ -12,12 +17,23 @@ class State:
 
     def get_player(self) -> Player: ...
 
+    def get_opponent(self) -> Player: ...
+
     def set_player(self, arg: Player, /) -> None: ...
 
-class Player(enum.Enum):
-    One = 0
+    class Player(enum.Enum):
+        One = 0
 
-    Two = 1
+        Two = 1
+
+class Outcomes(enum.Enum):
+    NonTerminal = 0
+
+    P1Win = 1
+
+    P2Win = 2
+
+    Draw = 3
 
 class Game:
     def __init__(self) -> None: ...
@@ -35,3 +51,14 @@ class Game:
     def is_draw(self, arg: State, /) -> bool: ...
 
     def is_terminal(self, arg: State, /) -> bool: ...
+
+    def get_outcome(self, arg: State, /) -> Outcomes: ...
+
+    class Outcomes(enum.Enum):
+        NonTerminal = 0
+
+        P1Win = 1
+
+        P2Win = 2
+
+        Draw = 3

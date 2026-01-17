@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
     bb2 = 0x000000070F0D0700;
     second_board = ConnectFourState::BoardType({bb1, bb2});
     second_state.set_board(second_board);
-    second_state.print_board();
-    std::cout << game.is_draw(second_state) << std::endl;
+    state.print_board();
+    std::cout << static_cast<int>(game.get_outcome(state)) << std::endl;
 
     return 0;
 }

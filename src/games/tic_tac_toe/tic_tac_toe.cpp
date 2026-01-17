@@ -69,7 +69,7 @@ TicTacToe::StateType TicTacToe::get_next_state(const StateType &state,
 bool TicTacToe::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for player
     TicTacToe::StateType::BoardType board = state.get_board();
-    for (int i; i < 8; i++) {
+    for (int i = 0; i < 8; i++) {
         if ((board[player] & WIN_MASKS[i]) == WIN_MASKS[i])
             return true;
     }
