@@ -7,6 +7,7 @@
 
 class TicTacToe {
 public:
+    enum class Outcomes { NonTerminal, P1Win, P2Win, Draw };
     using ActionType = int;
     using StateType = TicTacToeState;
 
@@ -15,11 +16,11 @@ public:
     std::vector<ActionType> get_actions(const StateType &state) const;
     int apply_action(StateType &state, ActionType action);
     int undo_action(StateType &state, ActionType action);
-    TicTacToeState get_next_state(const TicTacToeState &state,
-                                  ActionType action);
+    StateType get_next_state(const StateType &state, ActionType action);
     bool is_winner(const StateType &state, StateType::Player player);
     bool is_draw(const StateType &state);
     bool is_terminal(const StateType &state);
+    Outcomes get_outcome(const StateType &state);
 };
 
 static_assert(Game<TicTacToe>);

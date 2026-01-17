@@ -5,7 +5,7 @@
 
 template <typename G>
 concept Game = requires(G g, G::StateType state, G::ActionType action,
-                        G::StateType::Player player) {
+                        G::StateType::Player player, G::Outcomes outcomes) {
     {
         g.get_actions(state)
     } -> std::same_as<std::vector<typename G::ActionType>>;
@@ -14,6 +14,7 @@ concept Game = requires(G g, G::StateType state, G::ActionType action,
     { g.reset(state) } -> std::same_as<void>;
     { g.is_winner(state, player) } -> std::same_as<bool>;
     { g.is_terminal(state) } -> std::same_as<bool>;
+    { g.get_outcome(state) } -> std::same_as<typename G::Outcomes>;
 };
 
 #endif

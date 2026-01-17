@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Generic
+from typing import Callable, Generic, Type
 
 import numpy as np
 import numpy.random as rnd
@@ -13,8 +13,7 @@ from python.players.player_protocols import Player
 
 
 class UCT(Player):
-    def __init__(self, seed: int | None, tree_policy: edge_policy) -> None:
-        self._rand = rnd.default_rng(seed)
+    def __init__(self, tree_policy: EdgePolicy) -> None:
         self.tree_policy = tree_policy
 
     def select_action(self, game: Game, state: State): ...
@@ -26,18 +25,18 @@ class UCT(Player):
 if __name__ == "__main__":
     import random
 
-    POLICY_REGISTRY: dict[str, Callable[..., Edge]] = {
-        "ucb": select_ucb,
-        "lcb": select_lcb,
+    POLICY_REGISTRY: dict[str, Type[EdgePolicy]] = {
+        "ucb": UCB,
+        "lcb": LCB,
     }
 
-    def make_policy(name: str, **params) -> edge_policy:
+    def make_policy(name: str, **params) -> EdgePolicy:
         try:
             policy = POLICY_REGISTRY[name]
         except KeyError:
             raise ValueError(f"Non-existent policy: {name}")
 
-        return partial(policy, **params)
+        return policy(**params)
 
     random.seed(0)
     edges = []
@@ -50,8 +49,11 @@ if __name__ == "__main__":
         print(edge)
 
     # func_name: str = "ucb"
-    tree_policy = make_policy("ucb", **kwargs="C=1.0, rand=rand")
-    tree_policy = make_policy("lcb")
-    uct = UCT(0, tree_policy)
+    # tree_policy = make_policy("ucb", C=1.0, seed=0)
+    tree_policy = make_policy("lcb", seed=0)
+    print(hasattr(tree_policy, "rand"))
+    # tree_policy = LCB(seed=0)
+    print(type(tree_policy))
+    uct = UCT(tree_policy)
 
     print(uct.tree_policy(edges))

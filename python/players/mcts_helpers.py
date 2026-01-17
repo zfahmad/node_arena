@@ -37,52 +37,61 @@ class Node(Generic[ActionType]):
         return f"State: {self.state.state_to_string} N: {self.N}"
 
 
-class edge_policy(Protocol):
+class EdgePolicy(Protocol):
     def __call__(self, edges: list[Edge]) -> Edge: ...
 
 
 
-def select_ucb(edges: list[Edge], C: float = 1.0, rand=rnd.default_rng(None)) -> Edge:
-    assert edges, "Cannot run UCB on empty list of edges."
+class UCB(EdgePolicy):
+    def __init__(self, C: float, seed: int):
+        self.C = C
+        self.rand = rnd.default_rng(seed)
 
-    # Create arrays of sampled averages of Q-values and sample counts
-    Q_bars = []
-    Ns = []
-    for edge in edges:
-        Q_bars.append(edge.Q_bar)
-        Ns.append(edge.N)
-    Q_bars = np.asarray(Q_bars)
-    Ns = np.asarray(Ns)
+    def __call__(self, edges: list[Edge]) -> Edge:
+        assert edges, "Cannot run UCB on empty list of edges."
 
-    # Compute UCB values and choose the edge with the highest value.
-    # Ties are randomly broken
-    total_N = np.sum(Ns)
-    ucb_values = Q_bars + C * np.sqrt(np.log(Ns) / total_N)
-    max_ucb = np.max(ucb_values)
-    indices = np.flatnonzero(ucb_values == max_ucb)
-    index = rand.choice(indices)
+        # Create arrays of sampled averages of Q-values and sample counts
+        Q_bars = []
+        Ns = []
+        for edge in edges:
+            Q_bars.append(edge.Q_bar)
+            Ns.append(edge.N)
+        Q_bars = np.asarray(Q_bars)
+        Ns = np.asarray(Ns)
 
-    return edges[index]
+        # Compute UCB values and choose the edge with the highest value.
+        # Ties are randomly broken
+        total_N = np.sum(Ns)
+        ucb_values = Q_bars + self.C * np.sqrt(np.log(Ns) / total_N)
+        max_ucb = np.max(ucb_values)
+        indices = np.flatnonzero(ucb_values == max_ucb)
+        index = self.rand.choice(indices)
+
+        return edges[index]
 
 
-def select_lcb(edges: list[Edge], rand=rnd.default_rng(None)) -> Edge:
-    assert edges, "Cannot run LCB on empty list of edges."
+class LCB(EdgePolicy):
+    def __init__(self, seed: int):
+        self.rand = rnd.default_rng(seed)
 
-    # Create arrays of sampled averages of Q-values and sample counts
-    Q_bars = []
-    Ns = []
-    for edge in edges:
-        Q_bars.append(edge.Q_bar)
-        Ns.append(edge.N)
-    Q_bars = np.asarray(Q_bars)
-    Ns = np.asarray(Ns)
+    def __call__(self, edges: list[Edge]):
+        assert edges, "Cannot run LCB on empty list of edges."
 
-    # Compute LCB values and choose the edge with the highest value.
-    # Ties are randomly broken
-    total_N = np.sum(Ns)
-    lcb_values = Q_bars - np.sqrt(np.log(Ns) / total_N)
-    max_lcb = np.max(lcb_values)
-    indices = np.flatnonzero(lcb_values == max_lcb)
-    index = rand.choice(indices)
+        # Create arrays of sampled averages of Q-values and sample counts
+        Q_bars = []
+        Ns = []
+        for edge in edges:
+            Q_bars.append(edge.Q_bar)
+            Ns.append(edge.N)
+        Q_bars = np.asarray(Q_bars)
+        Ns = np.asarray(Ns)
 
-    return edges[index]
+        # Compute LCB values and choose the edge with the highest value.
+        # Ties are randomly broken
+        total_N = np.sum(Ns)
+        lcb_values = Q_bars - np.sqrt(np.log(Ns) / total_N)
+        max_lcb = np.max(lcb_values)
+        indices = np.flatnonzero(lcb_values == max_lcb)
+        index = self.rand.choice(indices)
+
+        return edges[index]

@@ -184,3 +184,13 @@ bool Othello::is_terminal(const StateType &state) {
     else
         return false;
 }
+
+Othello::Outcomes Othello::get_outcome(const StateType &state) {
+    if (is_winner(state, Player::One))
+        return Outcomes::P1Win;
+    if (is_winner(state, Player::Two))
+        return Outcomes::P2Win;
+    if (is_draw(state))
+        return Outcomes::Draw;
+    return Outcomes::NonTerminal;
+}

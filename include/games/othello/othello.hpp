@@ -20,6 +20,7 @@ const OthelloState::BBType SHIFT_MASKS[] = {
 
 class Othello {
 public:
+    enum class Outcomes { NonTerminal, P1Win, P2Win, Draw };
     using ActionType = int;
     using StateType = OthelloState;
 
@@ -33,6 +34,7 @@ public:
     bool is_winner(const StateType &state, StateType::Player player);
     bool is_draw(const StateType &state);
     bool is_terminal(const StateType &state);
+    Outcomes get_outcome(const StateType &state);
 };
 
 static_assert(Game<Othello>);

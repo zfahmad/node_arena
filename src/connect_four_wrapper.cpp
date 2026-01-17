@@ -27,5 +27,12 @@ NB_MODULE(connect_four_wrapper, m) {
         .def("get_next_state", &ConnectFour::get_next_state)
         .def("is_winner", &ConnectFour::is_winner)
         .def("is_draw", &ConnectFour::is_draw)
-        .def("is_terminal", &ConnectFour::is_terminal);
+        .def("is_terminal", &ConnectFour::is_terminal)
+        .def("get_outcome", &ConnectFour::get_outcome);
+
+    nb::enum_<ConnectFour::Outcomes>(m, "Outcomes")
+        .value("NonTerminal", ConnectFour::Outcomes::NonTerminal)
+        .value("P1Win", ConnectFour::Outcomes::P1Win)
+        .value("P2Win", ConnectFour::Outcomes::P2Win)
+        .value("Draw", ConnectFour::Outcomes::Draw);
 }

@@ -21,7 +21,7 @@ void TicTacToe::reset(TicTacToe::StateType &state) {
 }
 
 std::vector<TicTacToe::ActionType>
-TicTacToe::get_actions(const TicTacToe::StateType &state) const {
+TicTacToe::get_actions(const StateType &state) const {
     std::vector<TicTacToe::ActionType> actions;
     BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
@@ -32,8 +32,7 @@ TicTacToe::get_actions(const TicTacToe::StateType &state) const {
     return actions;
 }
 
-int TicTacToe::apply_action(TicTacToe::StateType &state,
-                            TicTacToe::ActionType action) {
+int TicTacToe::apply_action(StateType &state, ActionType action) {
     assert((action < 9) && (action > 0));
     BBType move = 1L << action;
     TicTacToe::StateType::BoardType board = state.get_board();
@@ -47,8 +46,7 @@ int TicTacToe::apply_action(TicTacToe::StateType &state,
     return 0;
 }
 
-int TicTacToe::undo_action(TicTacToe::StateType &state,
-                           TicTacToe::ActionType action) {
+int TicTacToe::undo_action(StateType &state, ActionType action) {
     assert((action < 9) && (action > 0));
     BBType move = 1L << action;
     TicTacToe::StateType::BoardType board = state.get_board();
@@ -58,7 +56,7 @@ int TicTacToe::undo_action(TicTacToe::StateType &state,
 }
 
 TicTacToe::StateType TicTacToe::get_next_state(const StateType &state,
-                                               TicTacToe::ActionType action) {
+                                               ActionType action) {
     TicTacToe::StateType next_state = state;
     apply_action(next_state, action);
     if (state.get_player() == Player::One)
@@ -68,7 +66,7 @@ TicTacToe::StateType TicTacToe::get_next_state(const StateType &state,
     return next_state;
 }
 
-bool TicTacToe::is_winner(const TicTacToe::StateType &state, Player player) {
+bool TicTacToe::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for player
     TicTacToe::StateType::BoardType board = state.get_board();
     for (int i; i < 8; i++) {
@@ -78,7 +76,7 @@ bool TicTacToe::is_winner(const TicTacToe::StateType &state, Player player) {
     return false;
 }
 
-bool TicTacToe::is_draw(const TicTacToe::StateType &state) {
+bool TicTacToe::is_draw(const StateType &state) {
     // Check if the state is a draw for both players
     // NOTE: This functions assumes the state was already checked for a winner
     // and will not check for a winner.
@@ -92,9 +90,22 @@ bool TicTacToe::is_draw(const TicTacToe::StateType &state) {
         return false;
 }
 
-bool TicTacToe::is_terminal(const TicTacToe::StateType &state) {
-    if (is_winner(state, Player::One)) return true;
-    if (is_winner(state, Player::Two)) return true;
-    if (is_draw(state)) return true;
+bool TicTacToe::is_terminal(const StateType &state) {
+    if (is_winner(state, Player::One))
+        return true;
+    if (is_winner(state, Player::Two))
+        return true;
+    if (is_draw(state))
+        return true;
     return false;
+}
+
+TicTacToe::Outcomes TicTacToe::get_outcome(const StateType &state) {
+    if (is_winner(state, Player::One))
+        return Outcomes::P1Win;
+    if (is_winner(state, Player::Two))
+        return Outcomes::P2Win;
+    if (is_draw(state))
+        return Outcomes::Draw;
+    return Outcomes::NonTerminal;
 }

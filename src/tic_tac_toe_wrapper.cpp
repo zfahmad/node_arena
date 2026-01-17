@@ -27,5 +27,12 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .def("get_next_state", &TicTacToe::get_next_state)
         .def("is_winner", &TicTacToe::is_winner)
         .def("is_draw", &TicTacToe::is_draw)
-        .def("is_terminal", &TicTacToe::is_terminal);
+        .def("is_terminal", &TicTacToe::is_terminal)
+        .def("get_outcome", &TicTacToe::get_outcome);
+
+    nb::enum_<TicTacToe::Outcomes>(m, "Outcomes")
+        .value("NonTerminal", TicTacToe::Outcomes::NonTerminal)
+        .value("P1Win", TicTacToe::Outcomes::P1Win)
+        .value("P2Win", TicTacToe::Outcomes::P2Win)
+        .value("Draw", TicTacToe::Outcomes::Draw);
 }
