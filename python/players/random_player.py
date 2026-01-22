@@ -9,19 +9,22 @@ A random player that selects a random action at each game state.
 import random
 
 from python.game_protocols import ActionType, Game, State
-from python.players.player_protocols import Player
+from python.players.player_protocols import PlayerProtocol
 
 
-class RandomPlayer(Player[ActionType]):
+class RandomPlayer(PlayerProtocol[ActionType]):
     def __init__(self, seed: int | None) -> None:
         if seed is not None:
             self._rand = random.Random(seed)
         else:
             self._rand = random.Random()
 
-    def select_action(self, game: Game, state: State) -> ActionType:
+    def __call__(self, game: Game, state: State) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
         return self._rand.choice(actions)
+
+    def __repr__(self):
+        return f"RandomPlayer"
 
 
 if __name__ == "__main__":
@@ -34,7 +37,7 @@ if __name__ == "__main__":
     player = RandomPlayer(seed=1)
     actions = game.get_actions(state)
     state.print_board()
-    action = player.select_action(game, state)
+    action = player(game, state)
     state = game.get_next_state(state, action)
     state.print_board()
     player = state.get_player()

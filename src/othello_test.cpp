@@ -31,17 +31,17 @@ int main(int argc, char **argv) {
         std::cout << action << " ";
     std::cout << std::endl;
 
-    state = game.get_next_state(state, actions[0]);
-    state.print_board();
-    actions = game.get_actions(state);
-    state = game.get_next_state(state, actions[1]);
-    state.print_board();
-    actions = game.get_actions(state);
-    state = game.get_next_state(state, actions[2]);
-    state.print_board();
-    actions = game.get_actions(state);
-    state = game.get_next_state(state, actions[2]);
-    state.print_board();
+    // state = game.get_next_state(state, actions[0]);
+    // state.print_board();
+    // actions = game.get_actions(state);
+    // state = game.get_next_state(state, actions[1]);
+    // state.print_board();
+    // actions = game.get_actions(state);
+    // state = game.get_next_state(state, actions[2]);
+    // state.print_board();
+    // actions = game.get_actions(state);
+    // state = game.get_next_state(state, actions[2]);
+    // state.print_board();
 
     // Othello game = Othello();
     // std::vector<int> actions = game.get_actions(state);

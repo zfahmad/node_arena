@@ -5,10 +5,9 @@
 #include <games/othello/othello_state.hpp>
 #include <vector>
 
-const int SHIFTS[] = {7, 1, 9, 8, 7, 1, 9, 8};
+const int SHIFTS[] = {1, 9, 8, 7, 1, 9, 8, 7};
 
 const OthelloState::BBType SHIFT_MASKS[] = {
-    0x00FEFEFEFEFEFEFE, // Up-right shift
     0xFEFEFEFEFEFEFEFE, // Right Shift
     0xFEFEFEFEFEFEFE00, // Down-right Shift
     0xFFFFFFFFFFFFFF00, // Down shift
@@ -16,6 +15,7 @@ const OthelloState::BBType SHIFT_MASKS[] = {
     0x7F7F7F7F7F7F7F7F, // Left shift
     0x007F7F7F7F7F7F7F, // Up-left shift
     0x00FFFFFFFFFFFFFF, // Up shift
+    0x00FEFEFEFEFEFEFE, // Up-right shift
 };
 
 class Othello {

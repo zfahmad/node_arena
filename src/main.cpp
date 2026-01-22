@@ -37,7 +37,11 @@ int main(int argc, char *argv[]) {
               << std::endl;
     new_state.string_to_state("2211122120");
     new_state.print_board();
+    std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
     std::cout << game.is_draw(new_state) << std::endl;
     std::cout << static_cast<int>(new_state.get_player()) << std::endl;
+    new_state.string_to_state("2000201111");
+    new_state.print_board();
+    std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
     return 0;
 }
