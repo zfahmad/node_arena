@@ -6,6 +6,7 @@
 template <typename G>
 concept Game = requires(G g, G::StateType state, G::ActionType action,
                         G::StateType::Player player, G::Outcomes outcomes) {
+    { g.get_id() } -> std::same_as<std::string>;
     {
         g.get_actions(state)
     } -> std::same_as<std::vector<typename G::ActionType>>;

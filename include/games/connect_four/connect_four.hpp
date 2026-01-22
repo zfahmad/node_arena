@@ -12,6 +12,7 @@ public:
     using StateType = ConnectFourState;
 
     ConnectFour();
+    std::string get_id() { return "ConnectFour"; }
     std::vector<ActionType> get_actions(const StateType &state) const;
     int apply_action(StateType &state, ActionType action);
     int undo_action(StateType &state, ActionType action);

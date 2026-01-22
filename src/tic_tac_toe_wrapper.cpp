@@ -29,6 +29,7 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
 
     nb::class_<TicTacToe> game_class(m, "Game");
     game_class.def(nb::init<>())
+        .def("get_id", &TicTacToe::get_id)
         .def("reset", &TicTacToe::reset)
         .def("get_actions", &TicTacToe::get_actions)
         .def("apply_action", &TicTacToe::apply_action)

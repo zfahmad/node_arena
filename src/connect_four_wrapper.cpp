@@ -29,6 +29,7 @@ NB_MODULE(connect_four_wrapper, m) {
 
     nb::class_<ConnectFour> game_class(m, "Game");
     game_class.def(nb::init<>())
+        .def("get_id", &ConnectFour::get_id)
         .def("reset", &ConnectFour::reset)
         .def("get_actions", &ConnectFour::get_actions)
         .def("apply_action", &ConnectFour::apply_action)

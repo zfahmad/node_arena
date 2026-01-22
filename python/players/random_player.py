@@ -14,17 +14,15 @@ from python.players.player_protocols import PlayerProtocol
 
 class RandomPlayer(PlayerProtocol[ActionType]):
     def __init__(self, seed: int | None) -> None:
-        if seed is not None:
-            self._rand = random.Random(seed)
-        else:
-            self._rand = random.Random()
+        self.seed = seed
+        self._rand = random.Random(seed)
 
     def __call__(self, game: Game, state: State) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
         return self._rand.choice(actions)
 
     def __repr__(self):
-        return f"RandomPlayer"
+        return f"RandomPlayer|Seed:{self.seed}"
 
 
 if __name__ == "__main__":

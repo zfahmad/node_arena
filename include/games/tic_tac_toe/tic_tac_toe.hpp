@@ -12,6 +12,7 @@ public:
     using StateType = TicTacToeState;
 
     TicTacToe();
+    std::string get_id() { return "TicTacToe"; }
     void reset(StateType &state);
     std::vector<ActionType> get_actions(const StateType &state) const;
     int apply_action(StateType &state, ActionType action);
