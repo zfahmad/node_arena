@@ -52,13 +52,13 @@ def get_utility(game: Game, state: State) -> float:
     # print(state.state_to_string())
     # print(player)
     # print(outcome)
-    if outcome == game.Outcomes.P1Win:
-        if player == state.Player.One:
+    if outcome.name == "P1Win":
+        if player.name == "One":
             return 1.0
         else:
             return -1.0
-    elif outcome == game.Outcomes.P2Win:
-        if player == state.Player.Two:
+    elif outcome.name == "P2Win":
+        if player.name == "Two":
             return 1.0
         else:
             return -1.0

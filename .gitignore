@@ -3,6 +3,7 @@
 **/.DS_Store
 /python/wrapper/*
 **/__pycache__
+**/*.json
 
 # Prerequisites
 *.d

@@ -14,7 +14,9 @@ class Play:
         self.max_turns: int = max_turns
         self.players: list[PlayerProtocol] = [p1, p2]
 
-    def play(self, game: Game, state: State, output_path: str = ""):
+    def play(
+        self, game: Game, state: State, output_path: str = "", verbose: bool = False
+    ) -> None:
         game_data_dict: dict = {
             "game": game.get_id(),
             "p1": str(self.players[0]),
@@ -32,9 +34,29 @@ class Play:
                 "state": state.state_to_string(),
                 "action": action,
             }
+
+            if verbose:
+                print(
+                    f"turn: {current_turn} player: {current_player(current_turn)} action: {action}"
+                )
+                state.print_board()
+
             turns.append(turn)
             state = game.get_next_state(state, action)
             current_turn += 1
+        turn = {
+            "turn": current_turn,
+            "player": current_player(current_turn),
+            "state": state.state_to_string(),
+            "action": "-",
+        }
+        if verbose:
+            print(
+                f"turn: {current_turn} player: {current_player(current_turn)} action: "
+            )
+            state.print_board()
+            print(game.get_outcome(state))
+        turns.append(turn)
 
         game_data_dict["outcome"] = game.get_outcome(state).name
         game_data_dict["turns"] = turns
@@ -67,4 +89,4 @@ if __name__ == "__main__":
     )
     player_2 = RandomPlayer(seed=seed)
     P = Play(100, player_1, player_2)
-    P.play(game, state, t)
+    P.play(game, state, t, verbose=True)
