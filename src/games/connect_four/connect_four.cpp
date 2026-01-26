@@ -3,6 +3,7 @@
 #include <games/connect_four/connect_four.hpp>
 #include <games/connect_four/connect_four_state.hpp>
 #include <iostream>
+#include <iomanip>
 
 // TODO: Currently the game does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
@@ -145,13 +146,15 @@ bool ConnectFour::is_draw(const StateType &state) {
     bit = (bit << state.get_num_cols()) - 1;
     bit = bit << (state.get_num_cols() + 1);
     for (int i = 0; i < state.get_num_rows() - 1; i++) {
-        bit = bit << (state.get_num_cols() + 1);
         CLEAR_MASK = CLEAR_MASK | bit;
+        bit = bit << (state.get_num_cols() + 1);
     }
 
     BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
+    // std::cout << std::hex << joined_bb << std::endl;
     BBType masked_board = joined_bb & CLEAR_MASK;
+    // std::cout << std::hex << CLEAR_MASK << " " << masked_board << std::endl;
     if (masked_board == CLEAR_MASK)
         return true;
     else

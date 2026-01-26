@@ -8,7 +8,7 @@ A random player that selects a random action at each game state.
 
 import random
 
-from python.game_protocols import ActionType, Game, State
+from python.game_protocols import ActionType, GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
 
 
@@ -17,19 +17,19 @@ class RandomPlayer(PlayerProtocol[ActionType]):
         self.seed = seed
         self._rand = random.Random(seed)
 
-    def __call__(self, game: Game, state: State) -> ActionType:
+    def __call__(self, game: GameProtocol, state: StateProtocol) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
         return self._rand.choice(actions)
 
     def __repr__(self):
-        return f"RandomPlayer|Seed:{self.seed}"
+        return f"RandomPlayer|seed:{self.seed}"
 
 
 if __name__ == "__main__":
     import python.wrappers.connect_four_wrapper as c4
     import python.wrappers.tic_tac_toe_wrapper as ttt
 
-    game: Game = ttt.Game()
+    game: GameProtocol = ttt.Game()
     state = ttt.State()
     game.reset(state)
     player = RandomPlayer(seed=1)

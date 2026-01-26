@@ -3,7 +3,7 @@ from typing import Type
 import numpy as np
 import numpy.random as rnd
 
-from python.game_protocols import ActionType, Game, State
+from python.game_protocols import ActionType, GameProtocol, StateProtocol
 from python.players.mcts_helpers import *
 from python.players.player_protocols import PlayerProtocol
 
@@ -11,23 +11,37 @@ from python.players.player_protocols import PlayerProtocol
 class MCTSPlayer(PlayerProtocol[ActionType]):
     def __init__(
         self,
-        seed: int,
-        num_samples: int,
-        tree_policy: EdgePolicy,
-        final_policy: EdgePolicy,
-        eval_func: EvaluationFunction,
+        seed: int | None = None,
+        num_samples: int = 256,
+        gamma: float = 1.0,
+        tree_policy: EdgePolicy | None = None,
+        final_policy: EdgePolicy | None = None,
+        eval_func: EvaluationFunction | None = None,
     ) -> None:
         self.num_samples = num_samples
-        self.tree_policy = tree_policy
-        self.eval_func = eval_func
-        self.final_policy = final_policy
+        self.gamma = gamma
         self.seed = seed
         self.rand_ = rnd.default_rng(seed=seed)
+
+        if tree_policy:
+            self.tree_policy = tree_policy
+        else:
+            self.tree_policy = UCB1(None, C=1.0)
+
+        if final_policy:
+            self.final_policy = final_policy
+        else:
+            self.final_policy = LCB(None)
+
+        if eval_func:
+            self.eval_func = eval_func
+        else:
+            self.eval_func = RandomRollout(None, max_depth=30)
 
     def select_action(self, node: Node) -> Edge:
         return self.final_policy(node.edges)
 
-    def traverse(self, game: Game, node: Node) -> float:
+    def traverse(self, game: GameProtocol, node: Node) -> float:
         # End traversal if terminal state is reached.
         # Return the outcome of the terminal state.
         # node.state.print_board()
@@ -59,7 +73,9 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         selected_edge: Edge = self.select(node.edges)
 
         if not selected_edge.outcomes:
-            new_state: State = game.get_next_state(node.state, selected_edge.action)
+            new_state: StateProtocol = game.get_next_state(
+                node.state, selected_edge.action
+            )
             new_child: Node = self.expand_node(game, new_state)
             selected_edge.outcomes.append(new_child)
 
@@ -78,12 +94,12 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         node.V += utility
         node.N += 1
 
-        return -utility
+        return -self.gamma * utility
 
     def select(self, edges: list[Edge]) -> Edge:
         return self.tree_policy(edges)
 
-    def expand_node(self, game: Game, state: State) -> Node:
+    def expand_node(self, game: GameProtocol, state: StateProtocol) -> Node:
         # Creates a new Node for the tree for the given state
         # Generates list of actions available at state
         expanded_node: Node = Node(state)
@@ -91,7 +107,7 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         expanded_node.unexpanded_actions = actions
         return expanded_node
 
-    def evaluate_node(self, game: Game, node: Node) -> float:
+    def evaluate_node(self, game: GameProtocol, node: Node) -> float:
         return self.eval_func(game, node.state)
 
     def print_tree(self, root: Node, depth: int = 0) -> None:
@@ -105,7 +121,7 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
                 self.print_tree(edge.outcomes[0], depth + 1)
 
     def __call__(
-        self, game: Game, state: State, verbose: bool = False
+        self, game: GameProtocol, state: StateProtocol, verbose: bool = False
     ) -> ActionType | None:
         assert game.get_actions(state), "No actions at state"
 
@@ -120,8 +136,11 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         return action
 
     def __repr__(self):
-        return f"MCTS|Samples:{self.num_samples},TP:{self.tree_policy},"\
-                f"FP:{self.final_policy},DP:{self.eval_func},Seed:{self.seed}"
+        return (
+            f"MCTS|seed:{self.seed},samples:{self.num_samples},"
+            f"gamma:{self.gamma},TP:{self.tree_policy},"
+            f"FP:{self.final_policy},DP:{self.eval_func}"
+        )
 
 
 if __name__ == "__main__":
@@ -138,7 +157,6 @@ if __name__ == "__main__":
     POLICY_REGISTRY: dict[str, Type[EdgePolicy]] = {
         "ucb1": UCB1,
         "lcb": LCB,
-        "greatest_counts": GreatestCounts,
     }
 
     def make_policy(name: str, **params) -> EdgePolicy:
@@ -159,7 +177,7 @@ if __name__ == "__main__":
     final_policy = make_policy("lcb", seed=0)
     evaluation_function = RandomRollout(seed=10, max_depth=30)
     # tree_policy = make_policy("lcb", seed=0)
-    uct = MCTSPlayer(0, 1024, tree_policy, final_policy, evaluation_function)
+    uct = MCTSPlayer(0, 1024, 0.98, tree_policy, final_policy, evaluation_function)
     print(uct)
     # uct(game, state, True)
     # state.string_to_state("2000201111")

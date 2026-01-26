@@ -3,7 +3,13 @@ from typing import Any, Generic, Protocol
 import numpy as np
 import numpy.random as rnd
 
-from python.game_protocols import ActionType, Game, Outcomes, Player, State
+from python.game_protocols import (
+    ActionType,
+    GameProtocol,
+    Outcomes,
+    Player,
+    StateProtocol,
+)
 
 
 class Edge(Generic[ActionType]):
@@ -30,8 +36,8 @@ class Node(Generic[ActionType]):
     # Node objects to represent states in the search tree
     __slots__ = ("state", "V", "N", "edges", "unexpanded_actions")
 
-    def __init__(self, state: State) -> None:
-        self.state: State = state
+    def __init__(self, state: StateProtocol) -> None:
+        self.state: StateProtocol = state
         self.V: float = 0.0
         self.N: int = 0
         self.edges: list["Edge"] = []
@@ -41,7 +47,7 @@ class Node(Generic[ActionType]):
         return f"[State: {self.state.state_to_string()} V: {self.V} N: {self.N} Actions: {[edge.action for edge in self.edges]}]"
 
 
-def get_utility(game: Game, state: State) -> float:
+def get_utility(game: GameProtocol, state: StateProtocol) -> float:
     # Returns the outcome of a state as a utility in {-1, 0, 1}
     # If the outcome of a state is a win for the current player at that state,
     # return -1. It is important to keep in mind that the value of a state is
@@ -52,13 +58,13 @@ def get_utility(game: Game, state: State) -> float:
     # print(state.state_to_string())
     # print(player)
     # print(outcome)
-    if outcome.name == "P1Win":
-        if player.name == "One":
+    if outcome == game.Outcomes.P1Win:
+        if player == state.Player.One:
             return 1.0
         else:
             return -1.0
-    elif outcome.name == "P2Win":
-        if player.name == "Two":
+    elif outcome == game.Outcomes.P2Win:
+        if player == state.Player.Two:
             return 1.0
         else:
             return -1.0
@@ -71,12 +77,13 @@ class EdgePolicy(Protocol):
 
 
 class EvaluationFunction(Protocol):
-    def __call__(self, game: Game, state: State) -> float: ...
+    def __call__(self, game: GameProtocol, state: StateProtocol) -> float: ...
 
 
 class UCB1(EdgePolicy):
-    def __init__(self, seed: int, C: float=1.0) -> None:
-        self.C = C
+    def __init__(self, seed: int | None = None, C: float = 1.0) -> None:
+        self.C: float = C
+        self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
 
     def __call__(self, edges: list[Edge]) -> Edge:
@@ -101,7 +108,7 @@ class UCB1(EdgePolicy):
         total_N = max(1, np.sum(Ns))
         Ns = np.clip(Ns, a_min=1, a_max=None)
         # print(f"{total_N=}")
-        ucb_values = Q_bars + self.C * np.sqrt(np.log(Ns) / total_N)
+        ucb_values = Q_bars + self.C * np.sqrt(np.log(total_N) / Ns)
         # print(f"{ucb_values=}")
         max_ucb = np.max(ucb_values)
         indices = np.flatnonzero(ucb_values == max_ucb)
@@ -110,11 +117,12 @@ class UCB1(EdgePolicy):
         return edges[index]
 
     def __repr__(self):
-        return "UCB1"
+        return f"UCB1(seed:{self.seed},C:{self.C})"
 
 
 class LCB(EdgePolicy):
-    def __init__(self, seed: int) -> None:
+    def __init__(self, seed: int | None = None) -> None:
+        self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
 
     def __call__(self, edges: list[Edge]) -> Edge:
@@ -132,7 +140,8 @@ class LCB(EdgePolicy):
         # Compute LCB values and choose the edge with the highest value.
         # Ties are randomly broken
         total_N = np.sum(Ns)
-        lcb_values = Q_bars - np.sqrt(np.log(Ns) / total_N)
+        lcb_values = Q_bars - np.sqrt(np.log(total_N) / Ns)
+        # print(lcb_values)
         max_lcb = np.max(lcb_values)
         indices = np.flatnonzero(lcb_values == max_lcb)
         index = self.rand_.choice(indices)
@@ -140,13 +149,14 @@ class LCB(EdgePolicy):
         return edges[index]
 
     def __repr__(self):
-        return "LCB"
+        return f"LCB(seed:{self.seed})"
 
 
-class GreedyEpsilon(EdgePolicy):
-    def __init__(self, seed: int, epsilon: float) -> None:
+class EpsilonGreedy(EdgePolicy):
+    def __init__(self, seed: int | None = None, epsilon: float = 0.1) -> None:
+        self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
-        self.epsilon = epsilon
+        self.epsilon: float = epsilon
 
     def __call__(self, edges: list[Edge]) -> Edge:
         assert (
@@ -169,11 +179,12 @@ class GreedyEpsilon(EdgePolicy):
         return edges[index]
 
     def __repr__(self):
-        return "GreedyEpsilon"
+        return f"EpsilonGreedy(seed:{self.seed},epsilon:{self.epsilon})"
 
 
-class GreatestCounts(EdgePolicy):
-    def __init__(self, seed: int) -> None:
+class GreedySamples(EdgePolicy):
+    def __init__(self, seed: int | None) -> None:
+        self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
 
     def __call__(self, edges: list[Edge]) -> Edge:
@@ -193,15 +204,16 @@ class GreatestCounts(EdgePolicy):
         return edges[index]
 
     def __repr__(self):
-        return "GreatestCounts"
+        return f"GreedySamples(seed:{self.seed})"
 
 
 class RandomRollout(EvaluationFunction):
-    def __init__(self, seed: int, max_depth: int) -> None:
+    def __init__(self, seed: int | None = None, max_depth: int = 50) -> None:
+        self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
-        self.max_depth = max_depth
+        self.max_depth: int = max_depth
 
-    def rollout(self, game: Game, state: State, depth: int) -> float:
+    def rollout(self, game: GameProtocol, state: StateProtocol, depth: int) -> float:
         if not depth < self.max_depth:
             return 0.0
 
@@ -211,13 +223,13 @@ class RandomRollout(EvaluationFunction):
 
         actions = game.get_actions(state)
         random_action = self.rand_.choice(actions)
-        next_state: State = game.get_next_state(state, random_action)
+        next_state: StateProtocol = game.get_next_state(state, random_action)
         utility: float = -self.rollout(game, next_state, depth + 1)
         return utility
 
-    def __call__(self, game: Game, state: State) -> float:
+    def __call__(self, game: GameProtocol, state: StateProtocol) -> float:
         depth = 0
         return self.rollout(game, state, depth)
 
     def __repr__(self):
-        return "RandomRollout"
+        return f"RandomRollout(seed:{self.seed},max_depth:{self.max_depth})"
