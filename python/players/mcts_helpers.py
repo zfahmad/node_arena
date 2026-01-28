@@ -182,7 +182,7 @@ class EpsilonGreedy(EdgePolicy):
         return f"EpsilonGreedy(seed:{self.seed},epsilon:{self.epsilon})"
 
 
-class GreedySamples(EdgePolicy):
+class MostSampled(EdgePolicy):
     def __init__(self, seed: int | None) -> None:
         self.seed: int | None = seed
         self.rand_ = rnd.default_rng(seed)
@@ -204,7 +204,32 @@ class GreedySamples(EdgePolicy):
         return edges[index]
 
     def __repr__(self):
-        return f"GreedySamples(seed:{self.seed})"
+        return f"MostSampled(seed:{self.seed})"
+
+
+class Greedy(EdgePolicy):
+    def __init__(self, seed: int | None) -> None:
+        self.seed: int | None = seed
+        self.rand_ = rnd.default_rng(seed)
+
+    def __call__(self, edges: list[Edge]) -> Edge:
+        assert (
+            edges
+        ), "greatest_counts: Cannot select an action from an empty list of edges."
+        Q_bars = []
+
+        for edge in edges:
+            Q_bars.append(edge.Q_bar)
+        Q_bars = np.asarray(Q_bars)
+
+        max_vals = np.max(Q_bars)
+        indices = np.flatnonzero(Q_bars == max_vals)
+        index = self.rand_.choice(indices)
+
+        return edges[index]
+
+    def __repr__(self):
+        return f"Greedy(seed:{self.seed})"
 
 
 class RandomRollout(EvaluationFunction):

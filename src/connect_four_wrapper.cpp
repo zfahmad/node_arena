@@ -12,7 +12,7 @@ NB_MODULE(connect_four_wrapper, m) {
         .value("Two", ConnectFourState::Player::Two);
 
     nb::class_<ConnectFourState> state_class(m, "State");
-    state_class.def(nb::init<>())
+    state_class.def(nb::init<int, int>())
         .def("print_board", &ConnectFourState::print_board)
         .def("state_to_string", &ConnectFourState::state_to_string)
         .def("string_to_state", &ConnectFourState::string_to_state)

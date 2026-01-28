@@ -55,6 +55,7 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         # the evaluation function.
         if node.N == 0:
             utility: float = self.evaluate_node(game, node)
+            self.expand_node(game, node)
             node.N += 1
             node.V += utility
             return -utility
@@ -76,7 +77,8 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
             new_state: StateProtocol = game.get_next_state(
                 node.state, selected_edge.action
             )
-            new_child: Node = self.expand_node(game, new_state)
+            # new_child: Node = self.expand_node(game, new_state)
+            new_child: Node = Node(new_state)
             selected_edge.outcomes.append(new_child)
 
         # Outcomes is a list to accomodate MCTS with double progressive
@@ -99,13 +101,16 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
     def select(self, edges: list[Edge]) -> Edge:
         return self.tree_policy(edges)
 
-    def expand_node(self, game: GameProtocol, state: StateProtocol) -> Node:
-        # Creates a new Node for the tree for the given state
-        # Generates list of actions available at state
-        expanded_node: Node = Node(state)
-        actions: list[ActionType] = game.get_actions(state)
-        expanded_node.unexpanded_actions = actions
-        return expanded_node
+    # def expand_node(self, game: GameProtocol, state: StateProtocol) -> Node:
+    #     # Creates a new Node for the tree for the given state
+    #     # Generates list of actions available at state
+    #     expanded_node: Node = Node(state)
+    #     actions: list[ActionType] = game.get_actions(state)
+    #     expanded_node.unexpanded_actions = actions
+    #     return expanded_node
+    def expand_node(self, game: GameProtocol, node: Node) -> None:
+        actions: list[ActionType] = game.get_actions(node.state)
+        node.unexpanded_actions = actions
 
     def evaluate_node(self, game: GameProtocol, node: Node) -> float:
         return self.eval_func(game, node.state)
@@ -125,7 +130,8 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
     ) -> ActionType | None:
         assert game.get_actions(state), "No actions at state"
 
-        root = self.expand_node(game, state)
+        root = Node(state)
+        self.expand_node(game, root)
         for _ in range(self.num_samples):
             self.traverse(game, root)
 

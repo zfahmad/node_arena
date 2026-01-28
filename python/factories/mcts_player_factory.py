@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Mapping
 
+import numpy as np
+
 from python.players.mcts_helpers import *
 from python.players.mcts_player import MCTSPlayer
 
@@ -10,7 +12,8 @@ class PolicyType(Enum):
     UCB1 = "ucb1"
     LCB = "lcb"
     EPSILON_GREEDY = "epsilon_greedy"
-    GREEDY_SAMPLES = "greedy_samples"
+    MOST_SAMPLED = "most_sampled"
+    GREEDY = "greedy"
 
 
 class EvalFuncType(Enum):
@@ -52,7 +55,7 @@ POLICY_REGISTRY = {
     PolicyType.UCB1: UCB1,
     PolicyType.LCB: LCB,
     PolicyType.EPSILON_GREEDY: EpsilonGreedy,
-    PolicyType.GREEDY_SAMPLES: GreedySamples,
+    PolicyType.MOST_SAMPLED: MostSampled,
 }
 
 EVAL_FUNC_REGISTRY = {EvalFuncType.RANDOM_ROLLOUT: RandomRollout}
@@ -107,6 +110,32 @@ class MCTSPlayerFactory:
         )
 
     def coerce_mcts_config(self, raw_config: Mapping) -> MCTSConfig:
+        # Base seed for MCTS
+        base_seed = raw_config.get("seed")
+
+        # Coerce raw subconfigs
+        tree_policy_raw = raw_config["tree_policy"]
+        final_policy_raw = raw_config["final_policy"]
+        eval_func_raw = raw_config["eval_func"]
+
+        # If MCTS seed is provided, use SeedSequence to generate child seeds
+        if base_seed is not None:
+            ss = np.random.SeedSequence(base_seed)
+            # Request three child seeds: tree, final, eval
+            child_seeds = ss.spawn(3)
+
+            def make_unique_int_seed(child_ss: np.random.SeedSequence) -> int:
+                # generate a single uint32 state from this child
+                return int(child_ss.generate_state(1)[0])
+
+            # Assign seeds only if not already provided
+            if tree_policy_raw.get("seed") is None:
+                tree_policy_raw["seed"] = make_unique_int_seed(child_seeds[0])
+            if final_policy_raw.get("seed") is None:
+                final_policy_raw["seed"] = make_unique_int_seed(child_seeds[1])
+            if eval_func_raw.get("seed") is None:
+                eval_func_raw["seed"] = make_unique_int_seed(child_seeds[2])
+
         return MCTSConfig(
             seed=raw_config.get("seed"),
             num_samples=raw_config.get("num_samples", 256),
@@ -120,7 +149,7 @@ class MCTSPlayerFactory:
         policy = POLICY_REGISTRY[cfg.type_]
         if cfg.type_ == PolicyType.UCB1:
             return policy(cfg.seed, cfg.C)
-        if cfg.type_ in [PolicyType.LCB, PolicyType.GREEDY_SAMPLES]:
+        if cfg.type_ in [PolicyType.LCB, PolicyType.MOST_SAMPLED]:
             return policy(cfg.seed)
         if cfg.type_ == PolicyType.EPSILON_GREEDY:
             return policy(cfg.seed, cfg.epsilon)

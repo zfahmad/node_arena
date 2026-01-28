@@ -57,5 +57,9 @@ if __name__ == "__main__":
 
     with open("python/test_config.yaml", "r") as f:
         data = yaml.safe_load(f)
-
     printer.pprint(data)
+
+    mcts_player = PF(data["player_one"]["type_"], data["player_one"]["params"])
+    print(mcts_player)
+    random_player = PF(data["player_two"]["type_"], data["player_two"]["params"])
+    print(random_player)

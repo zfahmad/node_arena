@@ -17,26 +17,24 @@ List of players currently available:
     mcts|seed,tree_policy,final_policy,default_policy
 
 Usage:
-    play.py [options]
+    play.py [options] <config-file>
 
 Options:
     -h --help                   # Show this screen
-    -o FILE --output=FILE       # Specify output path for game data [default: "./"]
+    -o FILE --output=FILE       # Specify output path for game data
     -v --verbose                # Print to stdout
-    --max-turns=N               # Maximum number of turns to play before ending game
+    --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
 """
 
 import json
-import os
+import logging
+import sys
 import time
 from typing import Callable
 
-import numpy as np
-import numpy.random as rand
-import yaml
-from factory import GameFactory, PlayerFactory
-
-from python.game_protocols import GameProtocol, Player, StateProtocol
+from python.factories.game_factory import GameFactory
+from python.factories.player_factory import PlayerFactory
+from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
 
 
@@ -74,7 +72,7 @@ class Play:
             if verbose:
                 print(
                     f"turn: {current_turn} "
-                    "player: {current_player(current_turn)} action: {action}"
+                    f"player: {current_player(current_turn)} action: {action}"
                 )
                 state.print_board()
             state = game.get_next_state(state, action)
@@ -90,7 +88,7 @@ class Play:
         if verbose:
             print(
                 f"turn: {current_turn} "
-                "player: {current_player(current_turn)} action: "
+                f"player: {current_player(current_turn)} action: "
             )
             state.print_board()
             print(game.get_outcome(state))
@@ -102,45 +100,69 @@ class Play:
                 json.dump(game_data_dict, f, indent=4)
 
 
+def configure_logging(log_file="app.log"):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
+    )
+
+
 def main():
+    import yaml
     from docopt import docopt
 
     arguments = docopt(__doc__)
-    print(arguments)
 
-    # from python.players.mcts_helpers import LCB, UCB1, RandomRollout
-    # from python.players.mcts_player import MCTSPlayer
-    # from python.players.randm_player import RandomPlayer
+    t = time.localtime()
+    t = "_".join([str(x) for x in [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]])
+    output = arguments["--output"]
+    if output == "":
+        output = t
+
+    configure_logging(output + ".log")
+
     GF = GameFactory()
     PF = PlayerFactory()
-    # print(time.asctime())
-    # t = time.localtime()
-    # t = "_".join([str(x) for x in [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]])
-    game_module = GF("tic_tac_toe")
-    game = game_module.Game()
-    state = game_module.State()
-    # print(game.get_id())
-    # PF(arguments['<player-two>'])
-    # state = game_module.State()
-    # seed = None
-    # ucb = UCB1(seed=seed, C=1.0)
-    # lcb = LCB(seed=seed)
-    # rollout = RandomRollout(seed=seed, max_depth=50)
-    # player_1 = MCTSPlayer(
-    #     seed=seed,
-    #     num_samples=5120,
-    #     gamma=0.8,
-    #     tree_policy=ucb,
-    #     final_policy=lcb,
-    #     eval_func=rollout,
-    # )
-    # player_2 = RandomPlayer(seed=seed)
-    # P = Play(100, player_1, player_2)
-    # P.play(game, state, t, verbose=True)
-    with open("python/test_config.yaml", "r") as cfg_file:
-        cfg = yaml.safe_load(cfg_file)
 
-    print(cfg)
+    logging.info("Loading config file...")
+    try:
+        with open(arguments["<config-file>"], "r") as f:
+            config_dict = yaml.safe_load(f)
+    except FileNotFoundError:
+        logging.error(f"Config file: {arguments['<config-file>']}, does not exist.")
+        sys.exit()
+    logging.info(f"Successfully loaded: {arguments['<config-file>']}")
+
+    logging.info("Loading game...")
+    game_module = GF(config_dict["game"]["type_"])
+    game = game_module.Game()
+    logging.info(f"Successfully loaded: {game.get_id()}")
+    state = game_module.State(
+        config_dict["game"]["size"][0], config_dict["game"]["size"][1]
+    )
+    if config_dict["game"]["initial_state"] == "":
+        game.reset(state)
+        logging.info("Created initial state.")
+    else:
+        state.string_to_state(config_dict["game"]["initial_state"])
+        logging.info("Created state from specification.")
+    logging.info("Creating first player...")
+    player_one = PF(
+        config_dict["player_one"]["type_"], config_dict["player_one"]["params"]
+    )
+    logging.info(f"Created: {player_one}")
+    logging.info("Creating second player...")
+    player_two = PF(
+        config_dict["player_two"]["type_"], config_dict["player_two"]["params"]
+    )
+    logging.info(f"Created: {player_two}")
+
+    P = Play(int(arguments["--max-turns"]), player_one, player_two)
+    logging.info("Beginning game.")
+    P.play(game, state, output, verbose=bool(arguments["--verbose"]))
+    logging.info("Game end.")
 
 
 if __name__ == "__main__":
