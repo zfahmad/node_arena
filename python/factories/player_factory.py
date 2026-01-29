@@ -12,6 +12,10 @@ FACTORY_REGISTRY = {
         "python.factories.random_player_factory",
         "RandomPlayerFactory",
     ),
+    "human": (
+        "python.factories.human_player_factory",
+        "HumanPlayerFactory",
+    ),
 }
 
 

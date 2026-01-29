@@ -52,6 +52,28 @@ void ConnectFourState::print_board() {
 
 void ConnectFourState::set_board(BoardType board) { this->board_ = board; }
 
+std::vector<std::vector<std::uint8_t>> ConnectFourState::to_array() {
+    std::vector<std::vector<uint8_t>> arrs;
+    arrs.reserve(2);
+    std::vector<Player> players;
+    players.push_back(get_player());
+    players.push_back(get_opponent());
+
+    for (Player p : players) {
+        std::vector<uint8_t> player_arr;
+        player_arr.reserve(num_cols_ * num_rows_);
+        BBType bits = board_[p];
+        bits = bits >> (num_cols_ + 1);
+        for (int i = 0; i < num_rows_; i++) {
+            for (int j = 0; j < num_cols_; j++)
+                player_arr.push_back((bits >> ((i * (num_cols_ + 1)) + j)) & 1);
+        }
+        arrs.push_back(std::move(player_arr));
+    }
+
+    return arrs;
+}
+
 std::string ConnectFourState::state_to_string() {
     // Converts the state representation to a string.
     // First sixteen characters represent the board for player one in hex.

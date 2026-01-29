@@ -5,6 +5,7 @@
 #include <nanobind/stl/vector.h>
 
 namespace nb = nanobind;
+using namespace nb::literals;
 
 NB_MODULE(connect_four_wrapper, m) {
     nb::enum_<ConnectFourState::Player>(m, "Player")
@@ -12,7 +13,10 @@ NB_MODULE(connect_four_wrapper, m) {
         .value("Two", ConnectFourState::Player::Two);
 
     nb::class_<ConnectFourState> state_class(m, "State");
-    state_class.def(nb::init<int, int>())
+    state_class
+        .def(nb::init<int, int>(), nb::arg("num_rows") = 6,
+             nb::arg("num_cols") = 7)
+        .def("to_array", &ConnectFourState::to_array)
         .def("print_board", &ConnectFourState::print_board)
         .def("state_to_string", &ConnectFourState::state_to_string)
         .def("string_to_state", &ConnectFourState::string_to_state)

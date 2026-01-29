@@ -26,6 +26,25 @@ void TicTacToeState::print_board() {
 
 void TicTacToeState::set_board(BoardType board) { this->board_ = board; }
 
+std::vector<std::vector<std::uint8_t>> TicTacToeState::to_array() {
+    std::vector<std::vector<uint8_t>> arrs;
+    arrs.reserve(2);
+    std::vector<Player> players;
+    players.push_back(get_player());
+    players.push_back(get_opponent());
+
+    for (Player p : players) {
+        std::vector<uint8_t> player_arr;
+        player_arr.reserve(9);
+        BBType bits = board_[p];
+        for (int i = 0; i < 9; i++)
+            player_arr.push_back((bits >> i) & 1);
+        arrs.push_back(std::move(player_arr));
+    }
+
+    return arrs;
+}
+
 std::string TicTacToeState::state_to_string() {
     // Converts the state representation to readable string.
     // First nine characters represent the board.

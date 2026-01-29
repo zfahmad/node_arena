@@ -14,7 +14,7 @@ List of games currently available:
 
 List of players currently available:
     random
-    mcts|seed,tree_policy,final_policy,default_policy
+    mcts
 
 Usage:
     play.py [options] <config-file>
@@ -58,6 +58,14 @@ class Play:
         turns: list[dict] = []
         current_turn: int = 0
         current_player: Callable[[int], int] = lambda x: x % 2
+        if verbose:
+            print(
+                f"turn: {current_turn} "
+                f"player: {current_player(current_turn)}"
+            )
+            state.print_board()
+
+        # Begin playing loop
         while (not game.is_terminal(state)) and (current_turn < self.max_turns):
             player = self.players[current_player(current_turn)]
             action = player(game, state)
@@ -69,14 +77,14 @@ class Play:
                 "action": action,
             }
             turns.append(turn)
+            state = game.get_next_state(state, action)
+            current_turn += 1
             if verbose:
                 print(
                     f"turn: {current_turn} "
                     f"player: {current_player(current_turn)} action: {action}"
                 )
                 state.print_board()
-            state = game.get_next_state(state, action)
-            current_turn += 1
 
         turn = {
             "turn": current_turn,
@@ -115,17 +123,21 @@ def main():
 
     arguments = docopt(__doc__)
 
+    # Create name for output file.
     t = time.localtime()
     t = "_".join([str(x) for x in [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]])
     output = arguments["--output"]
     if output == "":
         output = t
 
-    configure_logging(output + ".log")
+    if output:
+        configure_logging(output + ".log")
 
+    # Instantiate factories
     GF = GameFactory()
     PF = PlayerFactory()
 
+    # Load config file
     logging.info("Loading config file...")
     try:
         with open(arguments["<config-file>"], "r") as f:
@@ -135,13 +147,17 @@ def main():
         sys.exit()
     logging.info(f"Successfully loaded: {arguments['<config-file>']}")
 
+    # Load game and create players
     logging.info("Loading game...")
     game_module = GF(config_dict["game"]["type_"])
     game = game_module.Game()
     logging.info(f"Successfully loaded: {game.get_id()}")
-    state = game_module.State(
-        config_dict["game"]["size"][0], config_dict["game"]["size"][1]
-    )
+    if "size" in config_dict["game"].keys():
+        state = game_module.State(
+            config_dict["game"]["size"][0], config_dict["game"]["size"][1]
+        )
+    else:
+        state = game_module.State()
     if config_dict["game"]["initial_state"] == "":
         game.reset(state)
         logging.info("Created initial state.")
@@ -159,6 +175,7 @@ def main():
     )
     logging.info(f"Created: {player_two}")
 
+    # Play game
     P = Play(int(arguments["--max-turns"]), player_one, player_two)
     logging.info("Beginning game.")
     P.play(game, state, output, verbose=bool(arguments["--verbose"]))

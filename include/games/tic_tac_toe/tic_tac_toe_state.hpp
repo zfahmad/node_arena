@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <player.hpp>
 #include <state.hpp>
+#include <vector>
 
 class TicTacToeState {
 public:
@@ -17,6 +18,7 @@ public:
     void set_board(BoardType board);
     std::string state_to_string();
     void string_to_state(const std::string state_str);
+    std::vector<std::vector<std::uint8_t>> to_array();
     Player get_player() const { return player_; };
     Player get_opponent() const {
         return (player_ == Player::One) ? Player::Two : Player::One;

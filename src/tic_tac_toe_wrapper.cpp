@@ -14,6 +14,7 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
     nb::class_<TicTacToeState> state_class(m, "State");
     state_class.def(nb::init<>())
         .def("print_board", &TicTacToeState::print_board)
+        .def("to_array", &TicTacToeState::to_array)
         .def("state_to_string", &TicTacToeState::state_to_string)
         .def("string_to_state", &TicTacToeState::string_to_state)
         .def("get_player", &TicTacToeState::get_player)
