@@ -4,6 +4,9 @@
 /python/wrapper/*
 **/__pycache__
 **/*.json
+**/*.h5
+**/*.pyi
+**/*.log
 
 # Prerequisites
 *.d
