@@ -16,6 +16,7 @@ concept Game = requires(G g, G::StateType state, G::ActionType action,
     { g.is_winner(state, player) } -> std::same_as<bool>;
     { g.is_terminal(state) } -> std::same_as<bool>;
     { g.get_outcome(state) } -> std::same_as<typename G::Outcomes>;
+    { g.legal_moves_mask(state) } ->std::same_as<std::vector<std::uint8_t>>;
 };
 
 #endif

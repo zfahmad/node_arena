@@ -4,6 +4,7 @@
 #include <game.hpp>
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
 #include <vector>
+#include <string>
 
 class TicTacToe {
 public:
@@ -22,6 +23,7 @@ public:
     bool is_draw(const StateType &state);
     bool is_terminal(const StateType &state);
     Outcomes get_outcome(const StateType &state);
+    std::vector<std::uint8_t> legal_moves_mask(const StateType &state);
 };
 
 static_assert(Game<TicTacToe>);

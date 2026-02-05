@@ -1,0 +1,28 @@
+game:
+  type_: "connect_four"
+  size: [6, 7]
+  # type_: "tic_tac_toe"
+  initial_state: ""
+player_one:
+  type_: "mcts"
+  params:
+    seed: 87
+    gamma: 1.0
+    num_samples: 10024
+    tree_policy:
+      type_: "ucb1"
+      C: 1.0
+      # seed: 1
+    final_policy:
+      type_: "lcb"
+      # seed: 1
+    eval_func:
+      type_: "random_rollout"
+      # seed: 2
+player_two:
+  type_: "random"
+  params:
+    seed: 4
+# player_two:
+#   type_: "human"
+#   params:

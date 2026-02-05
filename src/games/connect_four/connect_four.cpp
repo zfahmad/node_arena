@@ -2,8 +2,8 @@
 #include <cassert>
 #include <games/connect_four/connect_four.hpp>
 #include <games/connect_four/connect_four_state.hpp>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 // TODO: Currently the game does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
@@ -152,9 +152,7 @@ bool ConnectFour::is_draw(const StateType &state) {
 
     BBType joined_bb =
         state.get_board()[Player::One] | state.get_board()[Player::Two];
-    // std::cout << std::hex << joined_bb << std::endl;
     BBType masked_board = joined_bb & CLEAR_MASK;
-    // std::cout << std::hex << CLEAR_MASK << " " << masked_board << std::endl;
     if (masked_board == CLEAR_MASK)
         return true;
     else
@@ -179,4 +177,16 @@ ConnectFour::Outcomes ConnectFour::get_outcome(const StateType &state) {
     if (is_draw(state))
         return Outcomes::Draw;
     return Outcomes::NonTerminal;
+}
+
+std::vector<std::uint8_t>
+ConnectFour::legal_moves_mask(const StateType &state) {
+    // Returns a binary vector of length num_cols.
+    // A 1 represents a column where a token can be placed and 0 represents a
+    // column that is full.
+    std::vector<std::uint8_t> mask(state.get_num_cols());
+    std::vector<ActionType> actions = get_actions(state);
+    for (int action : actions)
+        mask[action] = 1;
+    return mask;
 }

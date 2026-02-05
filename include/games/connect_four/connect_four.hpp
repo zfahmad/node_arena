@@ -22,6 +22,7 @@ public:
     bool is_draw(const StateType &state);
     bool is_terminal(const StateType &state);
     Outcomes get_outcome(const StateType &state);
+    std::vector<std::uint8_t> legal_moves_mask(const StateType &state);
 
     // Connect Four specific functions
     bool shift_check(StateType::BBType board, int direction);

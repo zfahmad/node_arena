@@ -41,6 +41,7 @@ NB_MODULE(connect_four_wrapper, m) {
         .def("is_winner", &ConnectFour::is_winner)
         .def("is_draw", &ConnectFour::is_draw)
         .def("is_terminal", &ConnectFour::is_terminal)
-        .def("get_outcome", &ConnectFour::get_outcome);
+        .def("get_outcome", &ConnectFour::get_outcome)
+        .def("legal_moves_mask", &ConnectFour::legal_moves_mask);
     game_class.attr("Outcomes") = m.attr("Outcomes");
 }

@@ -1,4 +1,4 @@
-from typing import Generic, Mapping
+from typing import Generic
 
 import h5py
 import numpy as np
@@ -80,7 +80,13 @@ if __name__ == "__main__":
 
     states = np.array(states)
     values = np.array(values)
+    indices = np.arange(states.shape[0])
+    indices = np.random.permutation(indices)
 
     with h5py.File(file_path, "w") as f:
-        f.create_dataset("states", data=states)
-        f.create_dataset("values", data=values)
+        training = f.create_group("training")
+        testing = f.create_group("testing")
+        training.create_dataset("states", data=states[indices[:4478]])
+        training.create_dataset("values", data=values[indices[:4478]])
+        testing.create_dataset("states", data=states[indices[4478:]])
+        testing.create_dataset("values", data=values[indices[4478:]])

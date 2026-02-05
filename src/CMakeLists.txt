@@ -11,6 +11,7 @@ target_link_libraries(othello_test PRIVATE othello)
 set(GAMES
     tic_tac_toe
     connect_four
+    othello
 )
 
 foreach(lib IN LISTS GAMES)

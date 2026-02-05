@@ -194,3 +194,11 @@ Othello::Outcomes Othello::get_outcome(const StateType &state) {
         return Outcomes::Draw;
     return Outcomes::NonTerminal;
 }
+
+std::vector<std::uint8_t> Othello::legal_moves_mask(const StateType &state) {
+    std::vector<std::uint8_t> mask(state.get_num_rows() * state.get_num_cols());
+    std::vector<ActionType> actions = get_actions(state);
+    for (int action : actions)
+        mask[action] = 1;
+    return mask;
+}

@@ -66,7 +66,7 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         # Select a random action, create an edge with the action, then append to
         # list of edges.
         if node.unexpanded_actions:
-            random_ind: np.int64 = self.rand_.integers(len(node.unexpanded_actions))
+            random_ind = self.rand_.integers(len(node.unexpanded_actions))
             unexpanded_action: ActionType = node.unexpanded_actions.pop(random_ind)
             node.edges.append(Edge(unexpanded_action))
 

@@ -4,6 +4,7 @@
 #include <player.hpp>
 #include <cstdint>
 #include <state.hpp>
+#include <vector>
 
 class OthelloState {
 public:
@@ -15,6 +16,7 @@ public:
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
+    std::vector<std::vector<std::uint8_t>> to_array();
     std::string state_to_string();
     void string_to_state(const std::string state_str);
     Player get_player() const { return player_; };

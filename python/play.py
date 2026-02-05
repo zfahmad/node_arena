@@ -37,6 +37,8 @@ from python.factories.player_factory import PlayerFactory
 from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
 
+# TODO: Implement parallel playing
+
 
 class Play:
     def __init__(self, max_turns: int, p1: PlayerProtocol, p2: PlayerProtocol):
@@ -59,10 +61,7 @@ class Play:
         current_turn: int = 0
         current_player: Callable[[int], int] = lambda x: x % 2
         if verbose:
-            print(
-                f"turn: {current_turn} "
-                f"player: {current_player(current_turn)}"
-            )
+            print(f"turn: {current_turn} " f"player: {current_player(current_turn)}")
             state.print_board()
 
         # Begin playing loop
@@ -182,5 +181,18 @@ def main():
     logging.info("Game end.")
 
 
+def test():
+    import numpy as np
+
+    import python.wrappers.tic_tac_toe_wrapper as gw
+
+    game = gw.Game()
+    state = gw.State()
+    game.reset(state)
+    state.print_board()
+    print(np.reshape(state.to_array(), (2, 3, 3)))
+    print(np.reshape(game.legal_moves_mask(state), (3, 3)))
+
+
 if __name__ == "__main__":
-    main()
+    test()

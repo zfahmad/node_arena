@@ -21,27 +21,32 @@ int main(int argc, char *argv[]) {
     std::cout << static_cast<int>(game_state.get_player()) << std::endl;
 
     TicTacToe game = TicTacToe();
-    game.reset(game_state);
-    game_state.print_board();
-    std::cout << static_cast<int>(game_state.get_player()) << std::endl;
+    // game.reset(game_state);
+    // game_state.print_board();
+    // std::cout << static_cast<int>(game_state.get_player()) << std::endl;
     std::vector<TicTacToe::ActionType> actions = game.get_actions(game_state);
     for (const auto &action : actions)
         std::cout << action << " ";
     std::cout << std::endl;
-    TicTacToe::StateType new_state = game.get_next_state(game_state, 4);
-    new_state.print_board();
-    new_state.string_to_state("2110122101");
-    new_state.print_board();
-    std::cout << game.is_winner(new_state, TicTacToe::StateType::Player::One) << "\n";
-    std::cout << game.is_winner(new_state, TicTacToe::StateType::Player::Two)
-              << std::endl;
-    new_state.string_to_state("2211122120");
-    new_state.print_board();
-    std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
-    std::cout << game.is_draw(new_state) << std::endl;
-    std::cout << static_cast<int>(new_state.get_player()) << std::endl;
-    new_state.string_to_state("2000201111");
-    new_state.print_board();
-    std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
+    std::vector<std::uint8_t> mask = game.legal_moves_mask(game_state);
+    for (int move : mask)
+        std::cout << move << " ";
+    std::cout << std::endl;
+    // TicTacToe::StateType new_state = game.get_next_state(game_state, 4);
+    // new_state.print_board();
+    // new_state.string_to_state("2110122101");
+    // new_state.print_board();
+    // std::cout << game.is_winner(new_state, TicTacToe::StateType::Player::One)
+    // << "\n"; std::cout << game.is_winner(new_state,
+    // TicTacToe::StateType::Player::Two)
+    //           << std::endl;
+    // new_state.string_to_state("2211122120");
+    // new_state.print_board();
+    // std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
+    // std::cout << game.is_draw(new_state) << std::endl;
+    // std::cout << static_cast<int>(new_state.get_player()) << std::endl;
+    // new_state.string_to_state("2000201111");
+    // new_state.print_board();
+    // std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
     return 0;
 }

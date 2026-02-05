@@ -45,6 +45,27 @@ void OthelloState::print_board() {
     std::cout << std::endl;
 }
 
+std::vector<std::vector<uint8_t>> OthelloState::to_array() {
+    std::vector<std::vector<uint8_t>> arrs;
+    arrs.reserve(2);
+    std::vector<Player> players;
+    players.push_back(get_player());
+    players.push_back(get_opponent());
+
+    for (Player p : players) {
+        std::vector<uint8_t> player_arr;
+        player_arr.reserve(num_cols_ * num_rows_);
+        BBType bits = board_[p];
+        for (int i = 0; i < num_rows_; i++) {
+            for (int j = 0; j < num_cols_; j++)
+                player_arr.push_back((bits >> ((i * 8) + j)) & 1);
+        }
+        arrs.push_back(std::move(player_arr));
+    }
+
+    return arrs;
+}
+
 void OthelloState::set_board(BoardType board) { this->board_ = board; }
 
 std::string OthelloState::state_to_string() {

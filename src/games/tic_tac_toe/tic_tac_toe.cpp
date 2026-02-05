@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdint>
 #include <games/tic_tac_toe/tic_tac_toe.hpp>
 #include <iostream>
 
@@ -108,4 +109,12 @@ TicTacToe::Outcomes TicTacToe::get_outcome(const StateType &state) {
     if (is_draw(state))
         return Outcomes::Draw;
     return Outcomes::NonTerminal;
+}
+
+std::vector<std::uint8_t> TicTacToe::legal_moves_mask(const StateType &state) {
+    std::vector<std::uint8_t> mask(9);
+    std::vector<ActionType> actions = get_actions(state);
+    for (int action : actions)
+        mask[action] = 1;
+    return mask;
 }
