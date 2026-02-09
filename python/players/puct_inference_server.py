@@ -7,7 +7,7 @@ from typing import Callable
 import jax.numpy as jnp
 import orbax.checkpoint as ocp
 from flax import nnx
-from jax import Array
+from jax import Array, jit
 from jax.typing import ArrayLike
 
 from python.game_protocols import StateProtocol
@@ -19,11 +19,9 @@ class InferenceClient:
         self.request_q = request_q
         self.response_q = response_q
 
-    def __call__(self, state: StateProtocol | None):
-        value = None
-        if state:
-            self.request_q.put((state.to_array(), self.actor_id))
-            value = self.response_q.get()
+    def __call__(self, state: StateProtocol) -> float:
+        self.request_q.put((state.to_array(), self.actor_id))
+        value = self.response_q.get()
         print(value)
         return value
 
@@ -52,11 +50,12 @@ class InferenceServer:
         # Load the model checkpoint at the path specified by ckpt_path.
         if not os.path.exists(ckpt_path):
             raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
-        self.model = model
-        graphdef, state = nnx.split(self.model)
+        graphdef, state = nnx.split(model)
         checkpointer = ocp.StandardCheckpointer()
         state = checkpointer.restore(ckpt_path + "state", target=state)
-        self.model = nnx.merge(graphdef, state)
+        model = nnx.merge(graphdef, state)
+        # jit compile the loaded model
+        self.jit_model = jit(model)
 
     def __call__(self, request_q: Queue, response_qs: list[Queue]) -> None:
         terminated_actors: int = 0
@@ -78,42 +77,38 @@ class InferenceServer:
             if not batch:  # if no requests were received, start over the loop
                 continue
 
-            # Pad mini-batch if partially filled
+            # Pad mini-batch if partially filled.
+            # Allows the server to use a jit-compiled model without having to
+            # recompile it
             effective_batch_size = len(batch)
             if effective_batch_size < self.batch_size:
                 for _ in range(self.batch_size - effective_batch_size):
                     batch.append(self.create_padding())
 
             input_batch = self.create_batch_input(jnp.array(batch))
-            values = self.model(input_batch)
+            values = self.jit_model(input_batch)
 
             for index, actor_id in enumerate(actor_ids):
                 response_qs[actor_id].put(values[index])
 
 
-def run_inference(
-    request_q: Queue,
-    response_qs: list[Queue],
-    num_actors: int,
-    batch_size: int,
-    game_str: str,
-    ckpt_path: str,
-) -> None:
+def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> None:
     # TODO: Maybe take model specs as dict?
 
     # Load model for specified game
-    gm = importlib.import_module(f"python.models.{game_str}_nn")
-    model = gm.CNN(nnx.Rngs(0))
+    gm = importlib.import_module(f"python.models.{params["game_str"]}_nn")
+    model = getattr(gm, params["model_type"])
+    m = model(params["seed"])
 
     # Create inference server
     print(f"Creating inference server: {os.getpid()}")
     inference_server = InferenceServer(
-        batch_size,
-        num_actors,
+        params["batch_size"],
+        params["num_actors"],
         gm.create_batch_input,
         gm.create_padding,
-        model,
-        ckpt_path,
+        m,
+        params["model_ckpt_path"],
     )
 
     # Await requests and process mini-batches until all actors terminate
@@ -144,23 +139,25 @@ def main():
     print(game.get_id())
     state = gm.State()
     game.reset(state)
-    request_q = Queue()
     num_actors = 5
     batch_size = 5
+    request_q = Queue()
     response_qs = [Queue() for _ in range(num_actors)]
+    model_type = "CNN"
     ckpt_path = "/Users/zaheen/projects/node_arena/python/checkpoints/"
     game_str = "tic_tac_toe"
+    model_params = {
+        "game_str": game_str,
+        "batch_size": batch_size,
+        "num_actors": num_actors,
+        "model_type": model_type,
+        "model_ckpt_path": ckpt_path,
+        "seed": 0,
+    }
 
     inference_proc = Process(
         target=run_inference,
-        args=(
-            request_q,
-            response_qs,
-            num_actors,
-            batch_size,
-            game_str,
-            ckpt_path,
-        ),
+        args=(request_q, response_qs, model_params),
     )
     inference_proc.start()
 

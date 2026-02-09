@@ -1,10 +1,8 @@
 #ifndef TIC_TAC_TOE_STATE_HPP
 #define TIC_TAC_TOE_STATE_HPP
 
-#include <cstdint>
 #include <player.hpp>
 #include <state.hpp>
-#include <vector>
 
 class TicTacToeState {
 public:

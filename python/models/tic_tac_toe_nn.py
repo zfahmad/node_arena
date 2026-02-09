@@ -29,7 +29,8 @@ def create_padding() -> Array:
 
 
 class CNN(nnx.Module):
-    def __init__(self, rngs: nnx.Rngs):
+    def __init__(self, seed: int):
+        rngs = nnx.Rngs(seed)
         self.conv1 = nnx.Conv(2, 32, kernel_size=(3, 3), rngs=rngs, padding="SAME")
         self.conv2 = nnx.Conv(32, 64, kernel_size=(3, 3), rngs=rngs, padding="SAME")
         self.linear1 = nnx.Linear(576, 1, rngs=rngs)

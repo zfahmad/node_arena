@@ -28,16 +28,17 @@ Options:
 
 import json
 import logging
+import os
 import sys
 import time
 from typing import Callable
 
+from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
-
-# TODO: Implement parallel playing
+from python.players.puct_inference_server import InferenceClient
 
 
 class Play:
@@ -76,8 +77,10 @@ class Play:
                 "action": action,
             }
             turns.append(turn)
+
             state = game.get_next_state(state, action)
             current_turn += 1
+
             if verbose:
                 print(
                     f"turn: {current_turn} "
@@ -92,12 +95,8 @@ class Play:
             "action": "-",
         }
         turns.append(turn)
+
         if verbose:
-            print(
-                f"turn: {current_turn} "
-                f"player: {current_player(current_turn)} action: "
-            )
-            state.print_board()
             print(game.get_outcome(state))
 
         game_data_dict["outcome"] = game.get_outcome(state).name
@@ -105,15 +104,6 @@ class Play:
         if output_path:
             with open(output_path + ".json", "w", encoding="utf-8") as f:
                 json.dump(game_data_dict, f, indent=4)
-
-
-def configure_logging(log_file="app.log"):
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
-    )
 
 
 def main():
@@ -133,8 +123,8 @@ def main():
         configure_logging(output + ".log")
 
     # Instantiate factories
-    GF = GameFactory()
-    PF = PlayerFactory()
+    game_factory = GameFactory()
+    player_factory = PlayerFactory()
 
     # Load config file
     logging.info("Loading config file...")
@@ -148,28 +138,34 @@ def main():
 
     # Load game and create players
     logging.info("Loading game...")
-    game_module = GF(config_dict["game"]["type_"])
+    game_module = game_factory(config_dict["game"]["type_"])
     game = game_module.Game()
     logging.info(f"Successfully loaded: {game.get_id()}")
-    if "size" in config_dict["game"].keys():
+
+    # Create state of specified size
+    if config_dict["game"].get("size", None):
         state = game_module.State(
             config_dict["game"]["size"][0], config_dict["game"]["size"][1]
         )
     else:
         state = game_module.State()
+
+    # Initialize state if specified, else start a new game
     if config_dict["game"]["initial_state"] == "":
         game.reset(state)
         logging.info("Created initial state.")
     else:
         state.string_to_state(config_dict["game"]["initial_state"])
         logging.info("Created state from specification.")
+
+    # Create players
     logging.info("Creating first player...")
-    player_one = PF(
+    player_one = player_factory(
         config_dict["player_one"]["type_"], config_dict["player_one"]["params"]
     )
     logging.info(f"Created: {player_one}")
     logging.info("Creating second player...")
-    player_two = PF(
+    player_two = player_factory(
         config_dict["player_two"]["type_"], config_dict["player_two"]["params"]
     )
     logging.info(f"Created: {player_two}")
@@ -181,18 +177,5 @@ def main():
     logging.info("Game end.")
 
 
-def test():
-    import numpy as np
-
-    import python.wrappers.tic_tac_toe_wrapper as gw
-
-    game = gw.Game()
-    state = gw.State()
-    game.reset(state)
-    state.print_board()
-    print(np.reshape(state.to_array(), (2, 3, 3)))
-    print(np.reshape(game.legal_moves_mask(state), (3, 3)))
-
-
 if __name__ == "__main__":
-    test()
+    main()

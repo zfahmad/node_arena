@@ -3,10 +3,12 @@ game:
   size: [6, 7]
   # type_: "tic_tac_toe"
   initial_state: ""
+# seed: 0
+num_procs: 4
 player_one:
   type_: "mcts"
   params:
-    seed: 87
+    seed: 7
     gamma: 1.0
     num_samples: 10024
     tree_policy:
@@ -23,6 +25,20 @@ player_two:
   type_: "random"
   params:
     seed: 4
-# player_two:
-#   type_: "human"
-#   params:
+inference_servers: [
+#   {
+#     type_: "puct",
+#     model_type: "CNN",
+#     name: "m1"
+#     ckpt_dir: "/Users/zaheen/projects/node_arena/python/checkpoints/",
+#     batch_size: 32,
+#     seed: 0,
+#     model_hypers: []
+#   },
+#   # {
+#   #   type_: "none2",
+#   #   ckpt_dir: "some other path",
+#   #   seed: 0,
+#   #   model_hypers: [1, 2]
+#   # }
+]

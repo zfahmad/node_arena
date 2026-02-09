@@ -5,15 +5,15 @@ from python.players.player_protocols import PlayerProtocol
 
 FACTORY_REGISTRY = {
     "mcts": (
-        "python.factories.mcts_player_factory",
+        "python.factories.player_factories.mcts_player_factory",
         "MCTSPlayerFactory",
     ),
     "random": (
-        "python.factories.random_player_factory",
+        "python.factories.player_factories.random_player_factory",
         "RandomPlayerFactory",
     ),
     "human": (
-        "python.factories.human_player_factory",
+        "python.factories.player_factories.human_player_factory",
         "HumanPlayerFactory",
     ),
 }

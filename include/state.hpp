@@ -5,6 +5,7 @@
 #include <player.hpp>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 template <typename S>
 concept State =
