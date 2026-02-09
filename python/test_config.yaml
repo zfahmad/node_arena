@@ -3,14 +3,16 @@ game:
   size: [6, 7]
   # type_: "tic_tac_toe"
   initial_state: ""
-# seed: 0
+
 num_procs: 4
+
 player_one:
   type_: "mcts"
+  # model: "m1"
   params:
-    seed: 7
+    seed: 87
     gamma: 1.0
-    num_samples: 10024
+    num_samples: 9216
     tree_policy:
       type_: "ucb1"
       C: 1.0
@@ -21,10 +23,12 @@ player_one:
     eval_func:
       type_: "random_rollout"
       # seed: 2
+
 player_two:
   type_: "random"
   params:
     seed: 4
+
 inference_servers: [
 #   {
 #     type_: "puct",

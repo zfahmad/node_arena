@@ -31,224 +31,258 @@ import logging
 import os
 import sys
 import time
+from dataclasses import dataclass, field, replace
 from multiprocessing import Process, Queue
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 import numpy.random as rand
+import yaml
 
-from python.play import Play
 from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
+from python.play import Play
+from python.players.player_protocols import PlayerProtocol
 
 
-def generate_random_seeds(base_seed: int, num_seeds: int):
+@dataclass
+class PlayerConfig:
+    type_: str
+    params: dict
+    model: Optional[str] = None
+
+
+@dataclass
+class GameConfig:
+    type_: str
+    size: Optional[List[int]] = None
+    initial_state: str = ""
+
+
+@dataclass
+class InferenceServerConfig:
+    game_str: str
+    name: str
+    type_: str
+    num_actors: int
+    batch_size: int
+    model_type: str
+    ckpt_dir: str
+    seed: int
+    model_hypers: List[Any]
+
+
+@dataclass
+class Config:
+    output: str
+    verbose: bool
+    max_turns: int
+    num_procs: int
+    game: GameConfig
+    player_one: PlayerConfig
+    player_two: PlayerConfig
+    inference_servers: List[InferenceServerConfig] = field(default_factory=list)
+
+
+@dataclass
+class InferenceEndpoints:
+    request_queue: Queue
+    response_queues: List[Queue]
+
+
+def generate_random_seeds(base_seed: int, num_seeds: int) -> List[int]:
     seed_sequence = rand.SeedSequence(base_seed)
     child_seeds = seed_sequence.spawn(num_seeds)
     return [int(seed.generate_state(1)[0]) for seed in child_seeds]
+
+
+def create_player(
+    proc_id: int,
+    PF: PlayerFactory,
+    player_cfg: PlayerConfig,
+    inference_endpoints: Dict[str, InferenceEndpoints],
+) -> PlayerProtocol:
+    logging.info(f"[proc {proc_id}] Creating player {player_cfg.type_}...")
+
+    client = None
+    if player_cfg.model:
+        endpoints = inference_endpoints[player_cfg.model]
+        client = InferenceClient(
+            proc_id,
+            endpoints.request_queue,
+            endpoints.response_queues[proc_id],  # only this player's queue
+        )
+
+    player = PF(player_cfg.type_, player_cfg.params)
+    logging.info(f"[proc {proc_id}] Created player: {player}")
+    return player
 
 
 def run_game(
     game_proc_id: int,
     GF: GameFactory,
     PF: PlayerFactory,
-    config_dict: dict,
-    log_file: str,
-    **kwargs: Any,
+    cfg: Config,
+    inference_endpoints: Dict[str, InferenceEndpoints],
 ):
-    configure_logging(f"{log_file}_{game_proc_id}.log")
-    logging.info(f"Loading game.")
-    game_module = GF(config_dict["game"]["type_"])
+    configure_logging(f"{cfg.output}_{game_proc_id}.log")
+    logging.info(f"[proc {game_proc_id}] Loading game.")
+
+    game_module = GF(cfg.game.type_)
     game = game_module.Game()
-    logging.info(f"Loaded game: {game.get_id()}.")
+    logging.info(f"[proc {game_proc_id}] Loaded game: {game.get_id()}")
     print(game.get_id())
-    # print(f"Creating inference client: {os.getpid()}")
-    # client = InferenceClient(
-    #     game_proc_id, kwargs["puct_infq"], kwargs["puct_resqs"][game_proc_id]
-    # )
-    # client(state)
-    # client.shutdown()
-    logging.info(f"Successfully loaded: {game.get_id()}")
-    if config_dict.get("size", None):
-        state = game_module.State(
-            config_dict["game"]["size"][0], config_dict["game"]["size"][1]
-        )
+
+    # Initialize state
+    if cfg.game.size:
+        state = game_module.State(cfg.game.size[0], cfg.game.size[1])
     else:
         state = game_module.State()
-    if config_dict["game"]["initial_state"] == "":
+
+    if cfg.game.initial_state == "":
         game.reset(state)
-        logging.info(f"Created initial state.")
+        logging.info(f"[proc {game_proc_id}] Created initial state.")
     else:
-        state.string_to_state(config_dict["game"]["initial_state"])
-        logging.info(f"Created state from specification.")
+        state.string_to_state(cfg.game.initial_state)
+        logging.info(f"[proc {game_proc_id}] Created state from specification.")
 
-    config_dict["player_one"]["params"]["seed"] = config_dict["player_one"]["seeds"][
-        game_proc_id
-    ]
-    logging.info(f"Creating first player...")
-    player_one = PF(
-        config_dict["player_one"]["type_"], config_dict["player_one"]["params"]
-    )
-    logging.info(f"Created: {player_one}")
-
-    config_dict["player_two"]["params"]["seed"] = config_dict["player_two"]["seeds"][
-        game_proc_id
-    ]
-    logging.info(f"Creating second player...")
-    player_two = PF(
-        config_dict["player_two"]["type_"], config_dict["player_two"]["params"]
-    )
-    logging.info(f"Created: {player_two}")
+    # Create players
+    player_one = create_player(game_proc_id, PF, cfg.player_one, inference_endpoints)
+    player_two = create_player(game_proc_id, PF, cfg.player_two, inference_endpoints)
 
     # Play game
-    P = Play(int(config_dict["max_turns"]), player_one, player_two)
-    logging.info(f"Beginning game.")
-    P.play(
-        game, state, config_dict["output"] + f"_{game_proc_id}", config_dict["verbose"]
-    )
-    logging.info(f"Game end.")
+    P = Play(cfg.max_turns, player_one, player_two)
+    logging.info(f"[proc {game_proc_id}] Beginning game.")
+    P.play(game, state, f"{cfg.output}_{game_proc_id}", cfg.verbose)
+    logging.info(f"[proc {game_proc_id}] Game end.")
 
 
 def run_inference(
-    request_q: Queue, response_qs: list[Queue], params: dict, log_file: str
-) -> None:
-    # TODO: Maybe take model specs as dict?
+    request_q: Queue,
+    response_qs: List[Queue],
+    params: InferenceServerConfig,
+    log_file: str,
+):
+    configure_logging(f"{log_file}.log")
+    logging.info(f"[server {params.name}] Creating inference model.")
 
-    # Load model for specified game
-    configure_logging(f"{log_file}_server.log")
-    game_module = importlib.import_module(f"python.models.{params["game_str"]}_nn")
-    Model = getattr(game_module, params["model_type"])
-    model = Model(params["seed"], *params["hypers"])
+    game_module = importlib.import_module(f"python.models.{params.game_str}_nn")
+    Model = getattr(game_module, params.model_type)
+    model = Model(params.seed, *params.model_hypers)
 
-    # Create inference server
-    print(f"Creating inference server: {os.getpid()}")
-    sm = importlib.import_module(f"python.players.{params["type_"]}_inference_server")
+    logging.info(f"[server {params.name}] Creating inference server")
+    sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
     inference_server = sm.InferenceServer(
-        params["batch_size"],
-        params["num_actors"],
+        params.batch_size,
+        params.num_actors,
         game_module.create_batch_input,
         game_module.create_padding,
         model,
-        params["model_ckpt_path"],
+        params.ckpt_dir,
     )
 
-    # Await requests and process mini-batches until all actors terminate
-    # while not shutdown_event.is_set():
-    inference_server(request_q, response_qs)
+    inference_server(request_q, response_qs)  # runs until all clients shutdown
 
 
 def main():
-    import yaml
     from docopt import docopt
 
     arguments = docopt(__doc__)
 
-    # Create name for output file.
+    # Generate default output name if not given
     t = time.localtime()
-    t = "_".join([str(x) for x in [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]])
-    output = arguments["--output"]
-    if output == "":
-        output = t
-
-    if output:
-        configure_logging(output + ".log")
-
-    # Instantiate factories
-    game_factory = GameFactory()
-    player_factory = PlayerFactory()
-    # inference_factory = PUCTServerFactory()
+    t_str = "_".join(map(str, [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]))
+    output = arguments["--output"] or t_str
+    configure_logging(f"{output}.log")
 
     # Load config file
-    logging.info("Loading config file...")
+    logging.info(f"Loading config file: {arguments['<config-file>']}")
     try:
-        with open(arguments["<config-file>"], "r") as f:
-            config_dict = yaml.safe_load(f)
+        with open(arguments["<config-file>"]) as f:
+            raw_cfg = yaml.safe_load(f)
     except FileNotFoundError:
-        logging.error(f"Config file: {arguments['<config-file>']}, does not exist.")
-        sys.exit()
-    logging.info(f"Successfully loaded: {arguments['<config-file>']}")
+        logging.error(f"Config file does not exist: {arguments['<config-file>']}")
+        sys.exit(1)
 
-    config_dict.update(
-        {
-            "output": output,
-            "verbose": arguments.get("--verbose", False),
-            "max_turns": arguments.get("--max-turns"),
-        }
-    )
-
-    # Create queues and inference servers
-    extra_kwargs = {}
-    inf_processes = []
-    inf_server_specs = config_dict.get("inference_servers")
-    for inf_server_spec in inf_server_specs:
-        inference_queue = Queue()
-        response_queues = [Queue() for _ in range(config_dict["num_procs"])]
-        inf_server_config = {
-            "type_": inf_server_spec["type_"],
-            "game_str": config_dict["game"]["type_"],
-            "batch_size": inf_server_spec["batch_size"],
-            "num_actors": config_dict["num_procs"],
-            "model_type": inf_server_spec["model_type"],
-            "model_ckpt_path": inf_server_spec["ckpt_dir"],
-            "seed": inf_server_spec["seed"],
-            "hypers": inf_server_spec["model_hypers"],
-        }
-        inf_processes.append(
-            Process(
-                target=run_inference,
-                args=(inference_queue, response_queues, inf_server_config),
-                kwargs={"log_file": output},
+    # Build dataclass config
+    cfg = Config(
+        output=output,
+        verbose=arguments.get("--verbose", False),
+        max_turns=int(arguments.get("--max-turns", raw_cfg.get("max_turns", 100))),
+        num_procs=raw_cfg["num_procs"],
+        game=GameConfig(**raw_cfg["game"]),
+        player_one=PlayerConfig(**raw_cfg["player_one"]),
+        player_two=PlayerConfig(**raw_cfg["player_two"]),
+        inference_servers=[
+            InferenceServerConfig(
+                **s, game_str=raw_cfg["game"]["type_"], num_actors=raw_cfg["num_procs"]
             )
-        )
-        extra_kwargs.update(
-            {
-                f"{inf_server_spec["name"]}_infq": inference_queue,
-                f"{inf_server_spec["name"]}_resqs": response_queues,
-            }
-        )
-
-    for inf_proc in inf_processes:
-        inf_proc.start()
-
-    num_procs: int = config_dict["num_procs"]
-
-    # Generate seeds for each process using the seed in the config file as the
-    # base seed
-    proc_seeds_p1 = generate_random_seeds(
-        config_dict["player_one"]["params"]["seed"], num_procs
+            for s in raw_cfg.get("inference_servers", [])
+        ],
     )
-    proc_seeds_p2 = generate_random_seeds(
-        config_dict["player_two"]["params"]["seed"], num_procs
-    )
-    config_dict["player_one"]["seeds"] = proc_seeds_p1
-    config_dict["player_two"]["seeds"] = proc_seeds_p2
 
-    logging.info(f"Creating actor processes.")
+    # Setup factories
+    game_factory = GameFactory()
+    player_factory = PlayerFactory()
+
+    # Setup inference servers
+    inference_endpoints: Dict[str, InferenceEndpoints] = {}
+    inf_processes = []
+
+    for server_cfg in cfg.inference_servers:
+        request_queue = Queue()
+        response_queues = [Queue() for _ in range(cfg.num_procs)]
+        inf_process = Process(
+            target=run_inference,
+            args=(request_queue, response_queues, server_cfg, cfg.output),
+        )
+        inf_processes.append(inf_process)
+        inference_endpoints[server_cfg.name] = InferenceEndpoints(
+            request_queue=request_queue, response_queues=response_queues
+        )
+
+    for p in inf_processes:
+        p.start()
+
+    # Generate seeds for each actor process
+    seeds_p1 = generate_random_seeds(cfg.player_one.params["seed"], cfg.num_procs)
+    seeds_p2 = generate_random_seeds(cfg.player_two.params["seed"], cfg.num_procs)
+
+    # Generate per-process configs
+    actor_configs = [
+        replace(
+            cfg,
+            player_one=replace(
+                cfg.player_one, params={**cfg.player_one.params, "seed": seeds_p1[i]}
+            ),
+            player_two=replace(
+                cfg.player_two, params={**cfg.player_two.params, "seed": seeds_p2[i]}
+            ),
+        )
+        for i in range(cfg.num_procs)
+    ]
+
+    # Launch actor processes
     actor_processes = [
         Process(
             target=run_game,
             args=(
-                game_proc_id,
+                i,
                 game_factory,
                 player_factory,
-                config_dict,
+                actor_configs[i],
+                inference_endpoints,
             ),
-            kwargs={**extra_kwargs, "log_file": output},
         )
-        for game_proc_id in range(num_procs)
+        for i in range(cfg.num_procs)
     ]
 
-    logging.info(f"Starting actor processes.")
-    for actor in actor_processes:
-        actor.start()
-
-    logging.info(f"Waiting for actor processes to complete.")
-    for actor in actor_processes:
-        actor.join()
-
-    logging.info(f"Waiting for server processes to complete.")
-    for inf_proc in inf_processes:
-        inf_proc.join()
+    for p in actor_processes:
+        p.start()
+    for p in actor_processes:
+        p.join()
+    for p in inf_processes:
+        p.join()
 
 
 if __name__ == "__main__":
