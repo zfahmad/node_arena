@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 
 template <typename G>
 concept Game = requires(G g, G::StateType state, G::ActionType action,
