@@ -17,9 +17,11 @@ NB_MODULE(connect_four_wrapper, m) {
         .def(nb::init<int, int>(), nb::arg("num_rows") = 6,
              nb::arg("num_cols") = 7)
         .def("to_array", &ConnectFourState::to_array)
+        .def("to_compact", &ConnectFourState::to_compact)
+        .def("from_compact", &ConnectFourState::from_compact)
         .def("print_board", &ConnectFourState::print_board)
-        .def("state_to_string", &ConnectFourState::state_to_string)
-        .def("string_to_state", &ConnectFourState::string_to_state)
+        .def("to_string", &ConnectFourState::to_string)
+        .def("from_string", &ConnectFourState::from_string)
         .def("get_player", &ConnectFourState::get_player)
         .def("get_opponent", &ConnectFourState::get_opponent)
         .def("set_player", &ConnectFourState::set_player);

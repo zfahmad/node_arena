@@ -52,6 +52,21 @@ void ConnectFourState::print_board() {
 
 void ConnectFourState::set_board(BoardType board) { this->board_ = board; }
 
+std::vector<ConnectFourState::BBType> ConnectFourState::to_compact() const {
+    std::vector<BBType> board;
+    board.reserve(2);
+    board.push_back(board_[Player::One]);
+    board.push_back(board_[Player::Two]);
+    return board;
+}
+
+void ConnectFourState::from_compact(std::vector<BBType> compact_board) {
+    if ((compact_board[0] & compact_board[1]) != 0)
+        throw std::logic_error("Bit collision");
+    board_[Player::One] = compact_board[0];
+    board_[Player::Two] = compact_board[1];
+}
+
 std::vector<std::vector<std::uint8_t>> ConnectFourState::to_array() {
     std::vector<std::vector<uint8_t>> arrs;
     arrs.reserve(2);
@@ -74,7 +89,7 @@ std::vector<std::vector<std::uint8_t>> ConnectFourState::to_array() {
     return arrs;
 }
 
-std::string ConnectFourState::state_to_string() {
+std::string ConnectFourState::to_string() {
     // Converts the state representation to a string.
     // First sixteen characters represent the board for player one in hex.
     // First sixteen characters represent the board for player two in hex.
@@ -98,7 +113,7 @@ std::string ConnectFourState::state_to_string() {
     return state_str;
 }
 
-void ConnectFourState::string_to_state(std::string state_str) {
+void ConnectFourState::from_string(std::string state_str) {
     const char *data = state_str.data();
     auto r1 = std::from_chars(data, data + 16, board_[Player::One], 16);
     auto r2 = std::from_chars(data + 16, data + 32, board_[Player::Two], 16);

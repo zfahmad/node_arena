@@ -143,7 +143,7 @@ def run_game(
         game.reset(state)
         logging.info(f"[proc {game_proc_id}] Created initial state.")
     else:
-        state.string_to_state(cfg.game.initial_state)
+        state.from_string(cfg.game.initial_state)
         logging.info(f"[proc {game_proc_id}] Created state from specification.")
 
     # Create players

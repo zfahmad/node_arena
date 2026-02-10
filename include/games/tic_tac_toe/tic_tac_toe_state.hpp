@@ -14,8 +14,10 @@ public:
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
-    std::string state_to_string();
-    void string_to_state(const std::string state_str);
+    std::vector<BBType> to_compact() const;
+    void from_compact(std::vector<BBType>);
+    std::string to_string();
+    void from_string(const std::string state_str);
     std::vector<std::vector<std::uint8_t>> to_array();
     Player get_player() const { return player_; };
     Player get_opponent() const {

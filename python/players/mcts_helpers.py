@@ -44,7 +44,7 @@ class Node(Generic[ActionType]):
         self.unexpanded_actions: list[Any] = []
 
     def __repr__(self):
-        return f"[State: {self.state.state_to_string()} V: {self.V} N: {self.N} Actions: {[edge.action for edge in self.edges]}]"
+        return f"[State: {self.state.to_string()} V: {self.V} N: {self.N} Actions: {[edge.action for edge in self.edges]}]"
 
 
 def get_utility(game: GameProtocol, state: StateProtocol) -> float:
@@ -55,7 +55,7 @@ def get_utility(game: GameProtocol, state: StateProtocol) -> float:
     # the state.
     outcome: Outcomes = game.get_outcome(state)
     player: Player = state.get_player()
-    # print(state.state_to_string())
+    # print(state.to_string())
     # print(player)
     # print(outcome)
     if outcome == game.Outcomes.P1Win:

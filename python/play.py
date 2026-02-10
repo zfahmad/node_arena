@@ -73,7 +73,7 @@ class Play:
             turn = {
                 "turn": current_turn,
                 "player": current_player(current_turn),
-                "state": state.state_to_string(),
+                "state": state.to_string(),
                 "action": action,
             }
             turns.append(turn)
@@ -91,7 +91,7 @@ class Play:
         turn = {
             "turn": current_turn,
             "player": current_player(current_turn),
-            "state": state.state_to_string(),
+            "state": state.to_string(),
             "action": "-",
         }
         turns.append(turn)
@@ -155,7 +155,7 @@ def main():
         game.reset(state)
         logging.info("Created initial state.")
     else:
-        state.string_to_state(config_dict["game"]["initial_state"])
+        state.from_string(config_dict["game"]["initial_state"])
         logging.info("Created state from specification.")
 
     # Create players

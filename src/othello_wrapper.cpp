@@ -17,9 +17,11 @@ NB_MODULE(othello_wrapper, m) {
         .def(nb::init<int, int>(), nb::arg("num_rows") = 8,
              nb::arg("num_cols") = 8)
         .def("to_array", &OthelloState::to_array)
+        .def("to_compact", &OthelloState::to_compact)
+        .def("from_compact", &OthelloState::from_compact)
         .def("print_board", &OthelloState::print_board)
-        .def("state_to_string", &OthelloState::state_to_string)
-        .def("string_to_state", &OthelloState::string_to_state)
+        .def("to_string", &OthelloState::to_string)
+        .def("from_string", &OthelloState::from_string)
         .def("get_player", &OthelloState::get_player)
         .def("get_opponent", &OthelloState::get_opponent)
         .def("set_player", &OthelloState::set_player);

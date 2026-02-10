@@ -106,7 +106,7 @@ def run_game(
         game.reset(state)
         logging.info(f"Created initial state.")
     else:
-        state.string_to_state(config_dict["game"]["initial_state"])
+        state.from_string(config_dict["game"]["initial_state"])
         logging.info(f"Created state from specification.")
 
     logging.info(f"Creating first player...")

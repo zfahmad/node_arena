@@ -14,9 +14,9 @@ int main(int argc, char *argv[]) {
     a = 8;
     std::cout << a << std::endl;
     game_state.print_board();
-    std::cout << game_state.state_to_string() << std::endl;
+    std::cout << game_state.to_string() << std::endl;
     std::string state_str = "2010122100";
-    game_state.string_to_state(state_str);
+    game_state.from_string(state_str);
     game_state.print_board();
     std::cout << static_cast<int>(game_state.get_player()) << std::endl;
 
@@ -32,20 +32,22 @@ int main(int argc, char *argv[]) {
     for (int move : mask)
         std::cout << move << " ";
     std::cout << std::endl;
+    game_state.from_compact(std::vector<TicTacToeState::BBType>(256, 256));
+    game_state.print_board();
     // TicTacToe::StateType new_state = game.get_next_state(game_state, 4);
     // new_state.print_board();
-    // new_state.string_to_state("2110122101");
+    // new_state.from_string("2110122101");
     // new_state.print_board();
     // std::cout << game.is_winner(new_state, TicTacToe::StateType::Player::One)
     // << "\n"; std::cout << game.is_winner(new_state,
     // TicTacToe::StateType::Player::Two)
     //           << std::endl;
-    // new_state.string_to_state("2211122120");
+    // new_state.from_string("2211122120");
     // new_state.print_board();
     // std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
     // std::cout << game.is_draw(new_state) << std::endl;
     // std::cout << static_cast<int>(new_state.get_player()) << std::endl;
-    // new_state.string_to_state("2000201111");
+    // new_state.from_string("2000201111");
     // new_state.print_board();
     // std::cout << static_cast<int>(game.get_outcome(new_state)) << std::endl;
     return 0;

@@ -11,13 +11,13 @@ int main(int argc, char **argv) {
     ConnectFourState::BoardType board = ConnectFourState::BoardType({bb1, bb2});
     state.set_board(board);
     // state.print_board();
-    // std::string state_str = state.state_to_string();
+    // std::string state_str = state.to_string();
     // state.set_board(ConnectFourState::BoardType({0, 0}));
     // state.print_board();
-    // state.string_to_state(state_str);
+    // state.from_string(state_str);
     // state.print_board();
     //
-    state.string_to_state("00690e71122e71000016710e6d550a00067");
+    state.from_string("00690e71122e71000016710e6d550a00067");
     state.print_board();
     ConnectFour game = ConnectFour();
     std::cout << game.is_draw(state) << std::endl;

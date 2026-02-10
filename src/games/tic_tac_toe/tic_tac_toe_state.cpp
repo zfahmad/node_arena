@@ -1,6 +1,8 @@
 #include <constants.hpp>
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
 #include <iostream>
+#include <cassert>
+#include <stdexcept>
 
 TicTacToeState::TicTacToeState() = default;
 
@@ -26,6 +28,21 @@ void TicTacToeState::print_board() {
 
 void TicTacToeState::set_board(BoardType board) { this->board_ = board; }
 
+std::vector<TicTacToeState::BBType> TicTacToeState::to_compact() const {
+    std::vector<BBType> board;
+    board.reserve(2);
+    board.push_back(board_[Player::One]);
+    board.push_back(board_[Player::Two]);
+    return board;
+}
+
+void TicTacToeState::from_compact(std::vector<BBType> compact_board) {
+    if ((compact_board[0] & compact_board[1]) != 0)
+        throw std::logic_error("Bit collision");
+    board_[Player::One] = compact_board[0];
+    board_[Player::Two] = compact_board[1];
+}
+
 std::vector<std::vector<std::uint8_t>> TicTacToeState::to_array() {
     std::vector<std::vector<uint8_t>> arrs;
     arrs.reserve(2);
@@ -45,7 +62,7 @@ std::vector<std::vector<std::uint8_t>> TicTacToeState::to_array() {
     return arrs;
 }
 
-std::string TicTacToeState::state_to_string() {
+std::string TicTacToeState::to_string() {
     // Converts the state representation to readable string.
     // First nine characters represent the board.
     // Last character is the current player at the state.
@@ -68,7 +85,7 @@ std::string TicTacToeState::state_to_string() {
     return state_str;
 }
 
-void TicTacToeState::string_to_state(std::string state_str) {
+void TicTacToeState::from_string(std::string state_str) {
     board_[Player::One] = 0;
     board_[Player::Two] = 0;
     int count = 0;

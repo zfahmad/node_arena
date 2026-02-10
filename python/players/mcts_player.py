@@ -157,7 +157,7 @@ if __name__ == "__main__":
     game = ttt.Game()
     state = ttt.State()
     game.reset(state)
-    state.string_to_state("0000200010")
+    state.from_string("0000200010")
     state.print_board()
 
     POLICY_REGISTRY: dict[str, Type[EdgePolicy]] = {
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     rand = rnd.default_rng(0)
 
     # func_name: str = "ucb"
-    # state.string_to_state("2000201010")
+    # state.from_string("2000201010")
     # state.print_board()
     tree_policy = make_policy("ucb", C=1.0, seed=0)
     final_policy = make_policy("lcb", seed=0)
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     uct = MCTSPlayer(0, 1024, 0.98, tree_policy, final_policy, evaluation_function)
     print(uct)
     # uct(game, state, True)
-    # state.string_to_state("2000201111")
+    # state.from_string("2000201111")
     # state.print_board()
     # print(game.get_outcome(state))
     while not game.is_terminal(state):

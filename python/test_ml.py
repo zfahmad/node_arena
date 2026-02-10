@@ -56,7 +56,7 @@ def main():
     learning_rate = 0.1
     momentum = 0.99
 
-    model = CNN(nnx.Rngs(0))
+    model = CNN(0)
     optimizer = nnx.Optimizer(model, optax.sgd(learning_rate, momentum), wrt=nnx.Param)
 
     for j in range(num_epochs):
