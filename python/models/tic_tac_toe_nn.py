@@ -1,6 +1,7 @@
 from functools import partial
 
 import jax.numpy as jnp
+import numpy as np
 from flax import nnx
 from jax import Array, jit, vmap
 from jax.typing import ArrayLike
@@ -28,6 +29,30 @@ def create_padding() -> Array:
     return jnp.zeros((2, 9))
 
 
+def to_sparse_policy(policy: Array) -> tuple[Array, Array]:
+    actions = jnp.nonzero(policy)[0]
+    weights = policy[actions]
+
+    return actions, weights
+
+
+def to_sparse_policy_numpy(policy: Array) -> tuple[np.ndarray, np.ndarray]:
+    actions, weights = to_sparse_policy(policy)
+    return (np.asarray(actions, dtype=np.uint8), np.asarray(weights))
+
+
+def from_sparse_policy(actions: Array, weights: Array):
+    unnormed_policy = np.zeros(9)
+    unnormed_policy[actions] = weights
+    policy = unnormed_policy / np.sum(unnormed_policy)
+    return jnp.array(policy)
+
+
+def from_sparse_policy_numpy(actions: np.ndarray, weights: np.ndarray) -> Array:
+    policy = from_sparse_policy(jnp.array(actions), jnp.array(weights))
+    return policy
+
+
 class CNN(nnx.Module):
     def __init__(self, seed: int):
         rngs = nnx.Rngs(seed)
@@ -46,8 +71,15 @@ class CNN(nnx.Module):
 if __name__ == "__main__":
     import jax.random as rnd
 
-    key = rnd.key(0)
-    dummy_arr = rnd.normal(key, shape=(32, 2, 9))
-    print(dummy_arr.shape)
-    dummy_input = create_batch_input(dummy_arr)
-    print(dummy_input.shape)
+    # key = rnd.key(0)
+    # dummy_arr = rnd.normal(key, shape=(32, 2, 9))
+    # print(dummy_arr.shape)
+    # dummy_input = create_batch_input(dummy_arr)
+    # print(dummy_input.shape)
+
+    actions = np.array([1, 3, 4], dtype=np.uint8)
+    weights = np.array([1, 1, 1])
+    policy = from_sparse_policy_numpy(actions, weights)
+    print(policy)
+    actions_np, weights_np = to_sparse_policy_numpy(policy)
+    print(actions_np, weights_np)

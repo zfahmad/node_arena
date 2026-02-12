@@ -72,16 +72,9 @@ if __name__ == "__main__":
     game = G.Game()
     state = G.State()
     game.reset(state)
-    print(state.to_compact())
-    state.from_string("0000000011")
+    # print(state.to_compact())
+    # state.from_string("0000000011")
     # state.from_string("0053444100000000002c0b0200000000167")
-    state.from_string("0201021011")
-    state.print_board()
-    print(state.to_compact())
-    state.from_compact([0, 0])
-    state.print_board()
-    state.from_compact([256, 0])
-    state.print_board()
     # print(state.to_array())
     # actions = game.get_actions(state)
     # print(actions)
@@ -91,38 +84,38 @@ if __name__ == "__main__":
     # print(arrs.reshape(2, 3, 3))
     # string_to_input_rep(state.to_string())
 
-    # dfs = DepthFirstSearch()
-    # dfs(game, state)
-    #
-    # file_path = "./python/ttt_dataset.h5"
-    #
-    # states = []
-    # values = []
-    # policies = []
-    # for key in dfs.cache.keys():
-    #     state.from_string(key)
-    #     # states.append(state.)
-    #     values.append(dfs.cache[key].value)
-    #     policies.append(dfs.cache[key].policy)
+    dfs = DepthFirstSearch()
+    dfs(game, state)
 
-    # states = np.array(states)
-    # values = np.array(values)
-    # policies = np.array(policies)
-    # print(values.shape)
-    # print(policies.shape)
+    file_path = "./python/ttt_dataset.h5"
+
+    states = []
+    values = []
+    policies = []
+    for key in dfs.cache.keys():
+        state.from_string(key)
+        states.append(state.to_compact())
+        values.append(dfs.cache[key].value)
+        policies.append(dfs.cache[key].policy)
+
+    states = np.array(states)
+    values = np.array(values)
+    policies = np.array(policies)
+    print(values.shape)
+    print(policies.shape)
 
     # print(np.reshape(np.sum(states[-15:], axis=1), (-1, 3, 3)))
-    # print(states[-15:])
-    # print(np.reshape(policies[-15:], (-1, 3, 3)))
-    # indices = np.arange(states.shape[0])
-    # indices = np.random.permutation(indices)
-    #
-    # with h5py.File(file_path, "w") as f:
-    #     training = f.create_group("training")
-    #     testing = f.create_group("testing")
-    #     training.create_dataset("states", data=states[indices[:4478]])
-    #     training.create_dataset("values", data=values[indices[:4478]])
-    #     training.create_dataset("policies", data=policies[indices[:4478]])
-    #     testing.create_dataset("states", data=states[indices[4478:]])
-    #     testing.create_dataset("values", data=values[indices[4478:]])
-    #     testing.create_dataset("policies", data=policies[indices[4478:]])
+    print(states[-15:])
+    print(np.reshape(policies[-15:], (-1, 3, 3)))
+    indices = np.arange(states.shape[0])
+    indices = np.random.permutation(indices)
+
+    with h5py.File(file_path, "w") as f:
+        training = f.create_group("training")
+        testing = f.create_group("testing")
+        training.create_dataset("states", data=states[indices[:4478]])
+        training.create_dataset("values", data=values[indices[:4478]])
+        training.create_dataset("policies", data=policies[indices[:4478]])
+        testing.create_dataset("states", data=states[indices[4478:]])
+        testing.create_dataset("values", data=values[indices[4478:]])
+        testing.create_dataset("policies", data=policies[indices[4478:]])

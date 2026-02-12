@@ -25,7 +25,7 @@ public:
     using StateType = OthelloState;
 
     Othello();
-    std::string get_id() { return "Othello"; }
+    std::string get_id() { return "othello"; }
     std::vector<ActionType> get_actions(const StateType &state) const;
     bool has_actions(const StateType &state);
     int apply_action(StateType &state, ActionType action);
