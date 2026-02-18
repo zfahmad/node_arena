@@ -17,8 +17,8 @@ def configure_logging(log_file: str = "app.log") -> None:
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
 
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
+    # console_handler = logging.StreamHandler(sys.stdout)
+    # console_handler.setFormatter(formatter)
 
     root.addHandler(file_handler)
-    root.addHandler(console_handler)
+    # root.addHandler(console_handler)

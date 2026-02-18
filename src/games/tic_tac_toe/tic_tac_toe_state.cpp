@@ -1,7 +1,7 @@
+#include <cassert>
 #include <constants.hpp>
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
 #include <iostream>
-#include <cassert>
 #include <stdexcept>
 
 TicTacToeState::TicTacToeState() = default;
@@ -30,9 +30,13 @@ void TicTacToeState::set_board(BoardType board) { this->board_ = board; }
 
 std::vector<TicTacToeState::BBType> TicTacToeState::to_compact() const {
     std::vector<BBType> board;
-    board.reserve(2);
+    board.reserve(3);
     board.push_back(board_[Player::One]);
     board.push_back(board_[Player::Two]);
+    if (player_ == Player::One)
+        board.push_back(0);
+    else
+        board.push_back(1);
     return board;
 }
 
@@ -41,6 +45,10 @@ void TicTacToeState::from_compact(std::vector<BBType> compact_board) {
         throw std::logic_error("Bit collision");
     board_[Player::One] = compact_board[0];
     board_[Player::Two] = compact_board[1];
+    if (compact_board[2] == 0)
+        player_ = Player::One;
+    else
+        player_ = Player::Two;
 }
 
 std::vector<std::vector<std::uint8_t>> TicTacToeState::to_array() {
