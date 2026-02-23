@@ -13,7 +13,7 @@ from python.data_reader import Batch
 def create_input_repr(state_arr: ArrayLike, dims: list[int]) -> Array:
     # Takes a batch of state arrays and generates the appropriate input
     # representation.
-    # For Tic-tac-toe, the input for a state is a 3x3 matrix for each player
+    # For Connect Four, the input for a state is a matrix for each player
     # representing each player's tokens.
     input_repr = jnp.reshape(state_arr, [2, dims[0], dims[1]])
     input_repr = jnp.transpose(input_repr, (1, 2, 0))
@@ -33,6 +33,12 @@ def create_padding(dims: list[int]) -> Array:
 def preprocess_batch(
     batch: Batch, dims: list[int]
 ) -> tuple[Array, Array, Array, Array]:
+    # Receives a batch of data read by DataReader
+    # It returns:
+    #   - a state array representation
+    #   - a target value
+    #   - a policy mask
+    #   - a target policy
     batch_states = jnp.asarray(batch.states)
     batch_values = jnp.asarray(batch.values)
     if batch.dense_policy is not None:
@@ -40,12 +46,10 @@ def preprocess_batch(
         batch_policies = jnp.asarray(batch.dense_policy.policy)
     elif batch.sparse_policy is not None:
         batch_masks, batch_policies = from_sparse_policy_numpy(
-            batch.sparse_policy.actions, batch.sparse_policy.weights
+            batch.sparse_policy.actions, batch.sparse_policy.weights, dims
         )
     else:
-        batch_masks = batch_policies = jnp.zeros(
-            (batch_states.shape[0], dims[0] * dims[1])
-        )
+        batch_masks = batch_policies = jnp.zeros((batch_states.shape[0], dims[1]))
     return batch_states, batch_values, batch_masks, batch_policies
 
 
@@ -61,39 +65,39 @@ def to_sparse_policy_numpy(policy: Array) -> tuple[np.ndarray, np.ndarray]:
     return (np.asarray(actions, dtype=np.uint8), np.asarray(weights))
 
 
-def from_sparse_policy(actions: Array, weights: Array):
-    unnormed_policy = np.zeros(9)
+def from_sparse_policy(actions: Array, weights: Array, dims: list[int]):
+    policy_len = dims[1]
+    unnormed_policy = np.zeros(policy_len)
     unnormed_policy[actions] = weights
-    mask = np.zeros(9)
+    mask = np.zeros(policy_len)
     mask[actions] = 1
     policy = unnormed_policy / np.sum(unnormed_policy)
     return jnp.array(mask), jnp.array(policy)
 
 
 def from_sparse_policy_numpy(
-    actions: np.ndarray, weights: np.ndarray
+    actions: np.ndarray, weights: np.ndarray, dims: list[int]
 ) -> tuple[Array, Array]:
-    mask, policy = vmap(from_sparse_policy)(jnp.array(actions), jnp.array(weights))
+    mask, policy = vmap(from_sparse_policy, in_axes=(0, 0, None))(
+        jnp.array(actions), jnp.array(weights), dims
+    )
     return mask, policy
 
 
 class CNN(nnx.Module):
     def __init__(self, seed: int, dims: list[int]):
         rngs = nnx.Rngs(seed)
-        self.policy_len = dims[0] * dims[1]
         self.conv1 = nnx.Conv(2, 32, kernel_size=(3, 3), rngs=rngs, padding="SAME")
         self.conv2 = nnx.Conv(32, 64, kernel_size=(3, 3), rngs=rngs, padding="SAME")
-        self.conv3 = nnx.Conv(64, 64, kernel_size=(3, 3), rngs=rngs, padding="SAME")
-        self.linear1 = nnx.Linear(64, 128, rngs=rngs)
+        self.linear1 = nnx.Linear(1024, 128, rngs=rngs)
         self.value_head = nnx.Linear(128, 1, rngs=rngs)
+        self.policy_len = dims[1]
         self.policy_head = nnx.Linear(128, self.policy_len, rngs=rngs)
 
     def __call__(self, x):
         x = nnx.relu(self.conv1(x))
         x = nnx.relu(self.conv2(x))
-        x = nnx.relu(self.conv3(x))
-        # x = x.reshape(x.shape[0], -1)  # flatten
-        x = jnp.mean(x, axis=(1, 2))  # flatten
+        x = x.reshape(x.shape[0], -1)  # flatten
         x = nnx.relu(self.linear1(x))
         v = nnx.tanh(self.value_head(x))
         p = self.policy_head(x)

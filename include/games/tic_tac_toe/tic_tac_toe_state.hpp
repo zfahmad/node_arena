@@ -10,7 +10,7 @@ public:
     using BBType = std::uint16_t;
     using BoardType = PlayerIndexed<BBType, Player>;
 
-    TicTacToeState();
+    TicTacToeState(int num_rows=3, int num_cols=3);
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
@@ -28,6 +28,7 @@ public:
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;
+    int num_rows_, num_cols_ = 3;
 };
 
 static_assert(State<TicTacToeState>);

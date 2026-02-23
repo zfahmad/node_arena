@@ -55,7 +55,7 @@ class PlayerConfig:
 @dataclass
 class GameConfig:
     type_: str
-    size: Optional[List[int]] = None
+    size: list[int]
     initial_state: str = ""
 
 
@@ -69,6 +69,7 @@ class InferenceServerConfig:
     model_type: str
     ckpt_dir: str
     seed: int
+    dims: list[int]
     model_hypers: List[Any]
 
 
@@ -168,17 +169,18 @@ def run_inference(
 
     game_module = importlib.import_module(f"python.models.{params.game_str}_nn")
     Model = getattr(game_module, params.model_type)
-    model = Model(params.seed, *params.model_hypers)
+    model = Model(params.seed, params.dims)
 
     logging.info(f"[server {params.name}] Creating inference server")
     sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
     inference_server = sm.InferenceServer(
-        params.batch_size,
-        params.num_actors,
-        game_module.create_batch_input,
-        game_module.create_padding,
-        model,
-        params.ckpt_dir,
+        batch_size=params.batch_size,
+        num_actors=params.num_actors,
+        create_batch_input=game_module.create_batch_input,
+        create_padding=game_module.create_padding,
+        model=model,
+        ckpt_dir=params.ckpt_dir,
+        dims=params.dims
     )
 
     inference_server(request_q, response_qs)  # runs until all clients shutdown
@@ -215,7 +217,10 @@ def main():
         player_two=PlayerConfig(**raw_cfg["player_two"]),
         inference_servers=[
             InferenceServerConfig(
-                **s, game_str=raw_cfg["game"]["type_"], num_actors=raw_cfg["num_procs"]
+                **s,
+                game_str=raw_cfg["game"]["type_"],
+                dims=raw_cfg["game"]["size"],
+                num_actors=raw_cfg["num_procs"],
             )
             for s in raw_cfg.get("inference_servers", [])
         ],

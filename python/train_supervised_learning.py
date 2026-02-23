@@ -15,6 +15,7 @@ import os
 import sys
 from dataclasses import dataclass
 from typing import Any, Callable
+from collections.abc import Sequence
 
 import jax.numpy as jnp
 import numpy as np
@@ -23,7 +24,6 @@ import yaml
 from flax import nnx
 from jax import Array, jit
 from jax.typing import ArrayLike
-from numpy._core.numeric import ndarray
 from orbax import checkpoint as ckp
 
 from python.configure_logging import configure_logging
@@ -39,6 +39,7 @@ class OptimizerConfig:
 @dataclass
 class TrainingConfig:
     game: str
+    size: list[int]
     dataset_path: str
     policy_type: str
     optimizer_cfg: OptimizerConfig
@@ -57,7 +58,8 @@ class ModelConfig:
     hypers: list[Any]
 
 
-def make_train_step(create_input_fn) -> Callable:
+def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
+    dims = tuple(dims)
     def loss_fn(
         model: nnx.Module,
         batch_inputs: Array,
@@ -83,17 +85,18 @@ def make_train_step(create_input_fn) -> Callable:
         batch_masks: ArrayLike,
         batch_policies: ArrayLike,
     ) -> tuple[nnx.Module, Array]:
-        batch_inputs = create_input_fn(batch_states)
+        batch_inputs = create_input_fn(batch_states, dims)
         loss, grads = grad_fn(
             model, batch_inputs, batch_values, batch_masks, batch_policies
         )
         optimizer.update(model, grads)
         return model, loss
 
-    return jit(train_step)
+    return train_step
 
 
-def make_evaluation(create_input_fn) -> Callable:
+def make_evaluation(create_input_fn, dims: Sequence[int]) -> Callable:
+    dims = tuple(dims)
     def evaluate_model(
         model: nnx.Module,
         batch_states: Array,
@@ -101,7 +104,7 @@ def make_evaluation(create_input_fn) -> Callable:
         batch_masks: Array,
         batch_policies: Array,
     ) -> dict:
-        batch_inputs = create_input_fn(batch_states)
+        batch_inputs = create_input_fn(batch_states, dims)
         predicted_values, output_policies = model(batch_inputs)
         policies = output_policies * batch_masks
         loss = jnp.mean(
@@ -128,7 +131,6 @@ def load_model(
     Model = getattr(model_module, cfg.name)
     create_input_fn = getattr(model_module, "create_batch_input")
     preprocess_batch = getattr(model_module, "preprocess_batch")
-    # preprocess_batch = getattr(model_module, "from_sparse_policy_numpy")
     return Model(*cfg.hypers), create_input_fn, preprocess_batch
 
 
@@ -149,6 +151,7 @@ def main():
 
     cfg = TrainingConfig(
         game=raw_cfg["training_config"]["game"],
+        size=raw_cfg["training_config"]["size"],
         dataset_path=raw_cfg["training_config"]["dataset_path"],
         policy_type=raw_cfg["training_config"]["policy_type"],
         num_iterations=raw_cfg["training_config"]["num_iterations"],
@@ -177,8 +180,8 @@ def main():
     logging.info(f"Loading optimizer: {cfg.optimizer_cfg.name}")
     O = getattr(optax, cfg.optimizer_cfg.name)
     optimizer = nnx.Optimizer(model, O(**cfg.optimizer_cfg.kwargs), wrt=nnx.Param)
-    train_step = make_train_step(create_input_fn)
-    evaluate_model = make_evaluation(create_input_fn)
+    train_step = make_train_step(create_input_fn, cfg.size)
+    evaluate_model = make_evaluation(create_input_fn, cfg.size)
 
     # Load the datasets
     # Each data sample in the sets must consist of a compact state, a value
@@ -197,7 +200,7 @@ def main():
         logging.info(f"Starting epoch: {epoch}")
         for step in range(num_iterations):
             batch: Batch = train_dr.get_next_batch()
-            batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch)  # type: ignore
+            batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch, cfg.size)  # type: ignore
             model, _ = train_step(
                 model,
                 optimizer,
@@ -217,7 +220,7 @@ def main():
                 metrics_sum = {"loss": 0.0, "pred_acc": 0.0}
                 for _ in range(num_eval_batches):
                     batch: Batch = train_dr.get_next_batch()
-                    batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch)  # type: ignore
+                    batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch, cfg.size)  # type: ignore
                     metrics = evaluate_model(
                         model, batch_states, batch_values, batch_masks, batch_policies
                     )

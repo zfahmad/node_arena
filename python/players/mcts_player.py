@@ -25,18 +25,18 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
 
         if tree_policy:
             self.tree_policy = tree_policy
-        else:
-            self.tree_policy = UCB1(None, C=1.0)
+        # else:
+        #     self.tree_policy = UCB1(None, C=1.0)
 
         if final_policy:
             self.final_policy = final_policy
-        else:
-            self.final_policy = LCB(None)
+        # else:
+        #     self.final_policy = LCB(None)
 
         if eval_func:
             self.eval_func = eval_func
-        else:
-            self.eval_func = RandomRollout(None, max_depth=30)
+        # else:
+        #     self.eval_func = RandomRollout(None, max_depth=30)
 
     def select_action(self, node: Node) -> Edge:
         return self.final_policy(node.edges)
@@ -101,13 +101,6 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
     def select(self, edges: list[Edge]) -> Edge:
         return self.tree_policy(edges)
 
-    # def expand_node(self, game: GameProtocol, state: StateProtocol) -> Node:
-    #     # Creates a new Node for the tree for the given state
-    #     # Generates list of actions available at state
-    #     expanded_node: Node = Node(state)
-    #     actions: list[ActionType] = game.get_actions(state)
-    #     expanded_node.unexpanded_actions = actions
-    #     return expanded_node
     def expand_node(self, game: GameProtocol, node: Node) -> None:
         actions: list[ActionType] = game.get_actions(node.state)
         node.unexpanded_actions = actions

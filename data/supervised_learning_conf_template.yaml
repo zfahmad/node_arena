@@ -1,0 +1,18 @@
+training_config:
+  game: ""
+  size: [ ]
+  dataset_path: ""
+  policy_type: "dense" # or "sparse"
+  num_iterations: 0
+  num_epochs:
+  batch_size:
+  eval_interval:
+  ckpt_path: ""
+optimizer_config:
+  name: "sgd"
+  kwargs:
+    learning_rate: 
+    momentum: 
+model_config:
+  name: ""
+  hypers: [ ]

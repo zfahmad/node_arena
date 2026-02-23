@@ -4,7 +4,10 @@
 #include <iostream>
 #include <stdexcept>
 
-TicTacToeState::TicTacToeState() = default;
+TicTacToeState::TicTacToeState(int num_rows, int num_cols) {
+    this->num_rows_ = num_rows;
+    this->num_cols_ = num_cols;
+}
 
 void TicTacToeState::print_board() {
     // Print the board to screen.

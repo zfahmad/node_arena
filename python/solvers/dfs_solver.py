@@ -15,7 +15,7 @@ class Node(Generic[ActionType]):
     def __init__(self, state: StateProtocol) -> None:
         self.state: StateProtocol = state
         self.V: float = -np.inf
-        self.policy: np.ndarray = np.zeros(9)
+        self.policy: np.ndarray = np.zeros(4)
 
     def __repr__(self) -> str:
         return f"[State: {self.state.to_string()} V: {self.V} P: {self.policy}]"
@@ -35,7 +35,7 @@ class DepthFirstSearch:
         if game.is_terminal(node.state):
             node.V = get_utility(game, node.state)
             self.cache[node.state.to_string()] = StateLabel(
-                value=node.V, policy=np.zeros(9)
+                value=node.V, policy=np.zeros(4)
             )
             return -node.V
 
@@ -44,7 +44,7 @@ class DepthFirstSearch:
             return -label.value
 
         actions = game.get_actions(node.state)
-        action_values = np.zeros(9)
+        action_values = np.zeros(4)
         for action in actions:
             child_state = game.get_next_state(node.state, action)
             child_node = Node(child_state)
@@ -66,11 +66,12 @@ class DepthFirstSearch:
 
 
 if __name__ == "__main__":
-    import python.wrappers.tic_tac_toe_wrapper as G
+    # import python.wrappers.tic_tac_toe_wrapper as G
+    import python.wrappers.connect_four_wrapper as G
 
     # import python.wrappers.connect_four_wrapper as G
     game = G.Game()
-    state = G.State()
+    state = G.State(4, 4)
     game.reset(state)
     # print(state.to_compact())
     # state.from_string("0000000011")
@@ -87,35 +88,54 @@ if __name__ == "__main__":
     dfs = DepthFirstSearch()
     dfs(game, state)
 
-    file_path = "./python/ttt_dataset.h5"
+    # file_path = "./python/ttt_dataset.h5"
+    file_path = "./python/c4_4_4_dataset.h5"
 
     states = []
     values = []
     policies = []
+    masks = []
     for key in dfs.cache.keys():
         state.from_string(key)
-        states.append(state.to_compact())
+        states.append(state.to_array())
+        masks.append(game.legal_moves_mask(state))
         values.append(dfs.cache[key].value)
         policies.append(dfs.cache[key].policy)
 
     states = np.array(states)
-    values = np.array(values)
+    values = np.array(values).reshape((-1,1))
+    masks = np.array(masks)
     policies = np.array(policies)
+    print(masks.shape)
     print(values.shape)
     print(policies.shape)
 
     # print(np.reshape(np.sum(states[-15:], axis=1), (-1, 3, 3)))
     print(states[-15:])
-    print(np.reshape(policies[-15:], (-1, 3, 3)))
+    print(masks[-15:])
+    print(policies[-15:])
     indices = np.arange(states.shape[0])
     indices = np.random.permutation(indices)
-
+    #
+    # with h5py.File(file_path, "w") as f:
+    #     training = f.create_group("training")
+    #     testing = f.create_group("testing")
+    #     training.create_dataset("states", data=states[indices[:4478]])
+    #     training.create_dataset("masks", data=masks[indices[:4478]])
+    #     training.create_dataset("values", data=values[indices[:4478]])
+    #     training.create_dataset("policies", data=policies[indices[:4478]])
+    #     testing.create_dataset("states", data=states[indices[4478:]])
+    #     testing.create_dataset("masks", data=masks[indices[4478:]])
+    #     testing.create_dataset("values", data=values[indices[4478:]])
+    #     testing.create_dataset("policies", data=policies[indices[4478:]])
     with h5py.File(file_path, "w") as f:
         training = f.create_group("training")
         testing = f.create_group("testing")
-        training.create_dataset("states", data=states[indices[:4478]])
-        training.create_dataset("values", data=values[indices[:4478]])
-        training.create_dataset("policies", data=policies[indices[:4478]])
-        testing.create_dataset("states", data=states[indices[4478:]])
-        testing.create_dataset("values", data=values[indices[4478:]])
-        testing.create_dataset("policies", data=policies[indices[4478:]])
+        training.create_dataset("states", data=states[indices[:16102]])
+        training.create_dataset("masks", data=masks[indices[:16102]])
+        training.create_dataset("values", data=values[indices[:16102]])
+        training.create_dataset("policies", data=policies[indices[:16102]])
+        testing.create_dataset("states", data=states[indices[16102:]])
+        testing.create_dataset("masks", data=masks[indices[16102:]])
+        testing.create_dataset("values", data=values[indices[16102:]])
+        testing.create_dataset("policies", data=policies[indices[16102:]])

@@ -14,12 +14,13 @@ from python.game_protocols import (
 
 class Edge(Generic[ActionType]):
     # Edge objects to represent actions taken at a state
-    __slots__ = ("action", "N", "W", "outcomes")
+    __slots__ = ("action", "N", "W", "prior", "outcomes")
 
     def __init__(self, action: ActionType) -> None:
         self.action: ActionType = action
         self.N: int = 0
         self.W: float = 0.0
+        self.prior: float = 0.0
         self.outcomes: list["Node"] = []
 
     @property
@@ -29,12 +30,12 @@ class Edge(Generic[ActionType]):
         return self.W / self.N if self.N > 0 else np.inf
 
     def __repr__(self):
-        return f"(Action: {self.action} N: {self.N} Q: {self.Q_bar})"
+        return f"(Action: {self.action} N: {self.N} Q: {self.Q_bar} P: {self.prior})"
 
 
 class Node(Generic[ActionType]):
     # Node objects to represent states in the search tree
-    __slots__ = ("state", "V", "N", "edges", "unexpanded_actions")
+    __slots__ = ("state", "V", "N", "edges", "unexpanded_actions", "priors")
 
     def __init__(self, state: StateProtocol) -> None:
         self.state: StateProtocol = state
@@ -42,6 +43,7 @@ class Node(Generic[ActionType]):
         self.N: int = 0
         self.edges: list["Edge"] = []
         self.unexpanded_actions: list[Any] = []
+        self.priors: np.ndarray = np.empty(0, dtype=np.float64)
 
     def __repr__(self):
         return f"[State: {self.state.to_string()} V: {self.V} N: {self.N} Actions: {[edge.action for edge in self.edges]}]"
@@ -136,6 +138,7 @@ class LCB(EdgePolicy):
             Ns.append(edge.N)
         Q_bars = np.asarray(Q_bars)
         Ns = np.asarray(Ns)
+        print(Q_bars)
 
         # Compute LCB values and choose the edge with the highest value.
         # Ties are randomly broken

@@ -2,9 +2,10 @@ import importlib
 import os
 import queue
 from multiprocessing import Process, Queue
-from typing import Callable
+from typing import Any, Callable, Sequence
 
 import jax.numpy as jnp
+import numpy as np
 import orbax.checkpoint as ocp
 from flax import nnx
 from jax import Array, jit
@@ -19,11 +20,10 @@ class InferenceClient:
         self.request_q = request_q
         self.response_q = response_q
 
-    def __call__(self, state: StateProtocol) -> float:
+    def __call__(self, state: StateProtocol) -> tuple[Any, Any]:
         self.request_q.put((state.to_array(), self.actor_id))
-        value = self.response_q.get()
-        print(value)
-        return value
+        value, policy = self.response_q.get()
+        return value[0], policy
 
     def shutdown(self):
         self.request_q.put((None, self.actor_id))
@@ -34,10 +34,11 @@ class InferenceServer:
         self,
         batch_size: int,
         num_actors: int,
-        create_batch_input: Callable[[ArrayLike], Array],
+        create_batch_input: Callable[[ArrayLike, Sequence[int]], Array],
         create_padding: Callable[..., Array],
         model: nnx.Module,
         ckpt_path: str,
+        dims: Sequence[int],
     ) -> None:
         # Set the mini-batch size to be used for inference.
         self.batch_size = batch_size
@@ -56,6 +57,7 @@ class InferenceServer:
         model = nnx.merge(graphdef, state)
         # jit compile the loaded model
         self.jit_model = jit(model)
+        self.dims = tuple(dims)
 
     def __call__(self, request_q: Queue, response_qs: list[Queue]) -> None:
         terminated_actors: int = 0
@@ -83,13 +85,15 @@ class InferenceServer:
             effective_batch_size = len(batch)
             if effective_batch_size < self.batch_size:
                 for _ in range(self.batch_size - effective_batch_size):
-                    batch.append(self.create_padding())
+                    batch.append(self.create_padding(self.dims))
 
-            input_batch = self.create_batch_input(jnp.array(batch))
-            values = self.jit_model(input_batch)
+            input_batch = self.create_batch_input(jnp.array(batch), self.dims)
+            values, policies = self.jit_model(input_batch)
 
             for index, actor_id in enumerate(actor_ids):
-                response_qs[actor_id].put(values[index])
+                response_qs[actor_id].put(
+                    (np.asarray(values[index]), np.asarray(policies[index]))
+                )
 
 
 def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> None:
@@ -98,7 +102,7 @@ def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> N
     # Load model for specified game
     gm = importlib.import_module(f"python.models.{params["game_str"]}_nn")
     model = getattr(gm, params["model_type"])
-    m = model(params["seed"])
+    m = model(params["seed"], params["hypers"])
 
     # Create inference server
     print(f"Creating inference server: {os.getpid()}")
@@ -109,6 +113,7 @@ def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> N
         gm.create_padding,
         m,
         params["model_ckpt_path"],
+        [3, 3],
     )
 
     # Await requests and process mini-batches until all actors terminate
@@ -144,7 +149,8 @@ def main():
     request_q = Queue()
     response_qs = [Queue() for _ in range(num_actors)]
     model_type = "CNN"
-    ckpt_path = "/Users/zaheen/projects/node_arena/python/checkpoints/"
+    # ckpt_path = "/Users/zaheen/projects/node_arena/python/checkpoints/"
+    ckpt_path = "/Users/zaheen/Documents/node_arena/test/checkpoints/60/"
     game_str = "tic_tac_toe"
     model_params = {
         "game_str": game_str,
@@ -153,6 +159,7 @@ def main():
         "model_type": model_type,
         "model_ckpt_path": ckpt_path,
         "seed": 0,
+        "hypers": [3, 3],
     }
 
     inference_proc = Process(
