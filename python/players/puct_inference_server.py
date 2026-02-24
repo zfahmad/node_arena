@@ -49,12 +49,13 @@ class InferenceServer:
         self.num_actors = num_actors
 
         # Load the model checkpoint at the path specified by ckpt_path.
-        if not os.path.exists(ckpt_path):
-            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
-        graphdef, state = nnx.split(model)
-        checkpointer = ocp.StandardCheckpointer()
-        state = checkpointer.restore(ckpt_path + "state", target=state)
-        model = nnx.merge(graphdef, state)
+        if ckpt_path != "":
+            if not os.path.exists(ckpt_path):
+                raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+            graphdef, state = nnx.split(model)
+            checkpointer = ocp.StandardCheckpointer()
+            state = checkpointer.restore(ckpt_path + "state", target=state)
+            model = nnx.merge(graphdef, state)
         # jit compile the loaded model
         self.jit_model = jit(model)
         self.dims = tuple(dims)
@@ -182,5 +183,5 @@ def main():
     inference_proc.join()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

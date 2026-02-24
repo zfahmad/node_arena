@@ -43,13 +43,15 @@ from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.play import Play
 from python.players.player_protocols import PlayerProtocol
+from python.players.puct_inference_server import InferenceClient
+from python.players.puct_player import PUCTPlayer
 
 
 @dataclass
 class PlayerConfig:
     type_: str
     params: dict
-    model: Optional[str] = None
+    server: Optional[str] = None
 
 
 @dataclass
@@ -70,7 +72,6 @@ class InferenceServerConfig:
     ckpt_dir: str
     seed: int
     dims: list[int]
-    model_hypers: List[Any]
 
 
 @dataclass
@@ -105,16 +106,18 @@ def create_player(
 ) -> PlayerProtocol:
     logging.info(f"[proc {proc_id}] Creating player {player_cfg.type_}...")
 
+    player = PF(player_cfg.type_, player_cfg.params)
     client = None
-    if player_cfg.model:
-        endpoints = inference_endpoints[player_cfg.model]
+    if player_cfg.server:
+        endpoints = inference_endpoints[player_cfg.server]
         client = InferenceClient(
             proc_id,
             endpoints.request_queue,
             endpoints.response_queues[proc_id],  # only this player's queue
         )
+        if isinstance(player, PUCTPlayer):
+            player.inf_client = client
 
-    player = PF(player_cfg.type_, player_cfg.params)
     logging.info(f"[proc {proc_id}] Created player: {player}")
     return player
 
@@ -156,6 +159,8 @@ def run_game(
     logging.info(f"[proc {game_proc_id}] Beginning game.")
     P.play(game, state, f"{cfg.output}_{game_proc_id}", cfg.verbose)
     logging.info(f"[proc {game_proc_id}] Game end.")
+    for player in [player_one, player_two]:
+        player.shutdown()
 
 
 def run_inference(
@@ -179,7 +184,7 @@ def run_inference(
         create_batch_input=game_module.create_batch_input,
         create_padding=game_module.create_padding,
         model=model,
-        ckpt_dir=params.ckpt_dir,
+        ckpt_path=params.ckpt_dir,
         dims=params.dims
     )
 

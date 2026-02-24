@@ -8,6 +8,10 @@ FACTORY_REGISTRY = {
         "python.factories.player_factories.mcts_player_factory",
         "MCTSPlayerFactory",
     ),
+    "puct": (
+        "python.factories.player_factories.puct_player_factory",
+        "PUCTPlayerFactory",
+    ),
     "random": (
         "python.factories.player_factories.random_player_factory",
         "RandomPlayerFactory",
@@ -29,7 +33,9 @@ class PlayerFactory:
 
 if __name__ == "__main__":
     from pprint import PrettyPrinter
+
     import yaml
+
     printer = PrettyPrinter(indent=2, width=40)
     mcts_player_dict = {
         "type_": "mcts",
@@ -43,27 +49,40 @@ if __name__ == "__main__":
         },
     }
 
-    random_player_dict = {
-            "type_": "random",
-            "params": {
-                "seed": 4
-                }
-            }
+    random_player_dict = {"type_": "random", "params": {"seed": 4}}
+
+    puct_player_dict = {
+        "type_": "puct",
+        "params": {
+            "seed": 0,
+            "num_samples": 128,
+            "gamma": 0.98,
+            "exploitation_threshold": 1,
+            "training": False,
+            "dirichlet_epsilon": 0.2,
+            "dirichlet_alpha": 0.1,
+            "tree_policy": {"seed": 1, "C": 1.5},
+            "final_policy": {"seed": 2},
+        },
+    }
 
     printer.pprint(mcts_player_dict)
-    printer.pprint(random_player_dict)
+    # printer.pprint(random_player_dict)
+    printer.pprint(puct_player_dict)
 
     PF = PlayerFactory()
     mcts_player = PF(mcts_player_dict["type_"], mcts_player_dict["params"])
     print(mcts_player)
-    random_player = PF(random_player_dict["type_"], random_player_dict["params"])
-    print(random_player)
+    # random_player = PF(random_player_dict["type_"], random_player_dict["params"])
+    # print(random_player)
+    puct_player = PF(puct_player_dict["type_"], puct_player_dict["params"])
+    print(puct_player)
 
-    with open("python/test_config.yaml", "r") as f:
-        data = yaml.safe_load(f)
-    printer.pprint(data)
+    # with open("python/test_config.yaml", "r") as f:
+    #     data = yaml.safe_load(f)
+    # printer.pprint(data)
 
-    mcts_player = PF(data["player_one"]["type_"], data["player_one"]["params"])
-    print(mcts_player)
-    random_player = PF(data["player_two"]["type_"], data["player_two"]["params"])
-    print(random_player)
+    # mcts_player = PF(data["player_one"]["type_"], data["player_one"]["params"])
+    # print(mcts_player)
+    # random_player = PF(data["player_two"]["type_"], data["player_two"]["params"])
+    # print(random_player)

@@ -118,6 +118,9 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
             if edge.outcomes:
                 self.print_tree(edge.outcomes[0], depth + 1)
 
+    def shutdown(self) -> None:
+        pass
+
     def __call__(
         self, game: GameProtocol, state: StateProtocol, verbose: bool = False
     ) -> ActionType | None:
@@ -142,63 +145,63 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         )
 
 
-if __name__ == "__main__":
-    import random
-
-    import python.wrappers.tic_tac_toe_wrapper as ttt
-
-    game = ttt.Game()
-    state = ttt.State()
-    game.reset(state)
-    state.from_string("0000200010")
-    state.print_board()
-
-    POLICY_REGISTRY: dict[str, Type[EdgePolicy]] = {
-        "ucb1": UCB1,
-        "lcb": LCB,
-    }
-
-    def make_policy(name: str, **params) -> EdgePolicy:
-        try:
-            policy = POLICY_REGISTRY[name]
-        except KeyError:
-            raise ValueError(f"Non-existent policy: {name}")
-
-        return policy(**params)
-
-    random.seed(0)
-    rand = rnd.default_rng(0)
-
-    # func_name: str = "ucb"
-    # state.from_string("2000201010")
-    # state.print_board()
-    tree_policy = make_policy("ucb", C=1.0, seed=0)
-    final_policy = make_policy("lcb", seed=0)
-    evaluation_function = RandomRollout(seed=10, max_depth=30)
-    # tree_policy = make_policy("lcb", seed=0)
-    uct = MCTSPlayer(0, 1024, 0.98, tree_policy, final_policy, evaluation_function)
-    print(uct)
-    # uct(game, state, True)
-    # state.from_string("2000201111")
-    # state.print_board()
-    # print(game.get_outcome(state))
-    while not game.is_terminal(state):
-        action = uct(game, state)
-        print(action)
-        if action is None:
-            raise RuntimeError("MCTS did not select an action.")
-        state = game.get_next_state(state, action)
-        state.print_board()
-    # node = uct.expand_node(game, state)
-    # for action in node.unexpanded_actions:
-    #     node.edges.append(Edge(action))
-    # print(node)
-    # for edge in node.edges:
-    #     print(f"  \u221f {edge}")
-    # # print(node.unexpanded_actions)
-    # # print(node.edges)
-    # utility = evaluation_function(game, state)
-    # print(utility)
-    # print(type(state.get_player()))
-    # outcome = game.get_outcome(state)
-    # print(outcome_to_utility(game, state))
+# if __name__ == "__main__":
+#     import random
+#
+#     import python.wrappers.tic_tac_toe_wrapper as ttt
+#
+#     game = ttt.Game()
+#     state = ttt.State()
+#     game.reset(state)
+#     state.from_string("0000200010")
+#     state.print_board()
+#
+#     POLICY_REGISTRY: dict[str, Type[EdgePolicy]] = {
+#         "ucb1": UCB1,
+#         "lcb": LCB,
+#     }
+#
+#     def make_policy(name: str, **params) -> EdgePolicy:
+#         try:
+#             policy = POLICY_REGISTRY[name]
+#         except KeyError:
+#             raise ValueError(f"Non-existent policy: {name}")
+#
+#         return policy(**params)
+#
+#     random.seed(0)
+#     rand = rnd.default_rng(0)
+#
+#     # func_name: str = "ucb"
+#     # state.from_string("2000201010")
+#     # state.print_board()
+#     tree_policy = make_policy("ucb", C=1.0, seed=0)
+#     final_policy = make_policy("lcb", seed=0)
+#     evaluation_function = RandomRollout(seed=10, max_depth=30)
+#     # tree_policy = make_policy("lcb", seed=0)
+#     uct = MCTSPlayer(0, 1024, 0.98, tree_policy, final_policy, evaluation_function)
+#     print(uct)
+#     # uct(game, state, True)
+#     # state.from_string("2000201111")
+#     # state.print_board()
+#     # print(game.get_outcome(state))
+#     while not game.is_terminal(state):
+#         action = uct(game, state)
+#         print(action)
+#         if action is None:
+#             raise RuntimeError("MCTS did not select an action.")
+#         state = game.get_next_state(state, action)
+#         state.print_board()
+#     # node = uct.expand_node(game, state)
+#     # for action in node.unexpanded_actions:
+#     #     node.edges.append(Edge(action))
+#     # print(node)
+#     # for edge in node.edges:
+#     #     print(f"  \u221f {edge}")
+#     # # print(node.unexpanded_actions)
+#     # # print(node.edges)
+#     # utility = evaluation_function(game, state)
+#     # print(utility)
+#     # print(type(state.get_player()))
+#     # outcome = game.get_outcome(state)
+#     # print(outcome_to_utility(game, state))

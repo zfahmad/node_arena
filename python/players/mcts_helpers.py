@@ -138,7 +138,8 @@ class LCB(EdgePolicy):
             Ns.append(edge.N)
         Q_bars = np.asarray(Q_bars)
         Ns = np.asarray(Ns)
-        print(Q_bars)
+        # print([edge.action for edge in edges])
+        # print(Q_bars)
 
         # Compute LCB values and choose the edge with the highest value.
         # Ties are randomly broken

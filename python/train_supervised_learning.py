@@ -13,9 +13,9 @@ import importlib
 import logging
 import os
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Callable
-from collections.abc import Sequence
 
 import jax.numpy as jnp
 import numpy as np
@@ -55,11 +55,13 @@ class TrainingConfig:
 class ModelConfig:
     type_: str
     name: str
+    seed: int
     hypers: list[Any]
 
 
 def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
     dims = tuple(dims)
+
     def loss_fn(
         model: nnx.Module,
         batch_inputs: Array,
@@ -97,6 +99,7 @@ def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
 
 def make_evaluation(create_input_fn, dims: Sequence[int]) -> Callable:
     dims = tuple(dims)
+
     def evaluate_model(
         model: nnx.Module,
         batch_states: Array,
@@ -131,7 +134,7 @@ def load_model(
     Model = getattr(model_module, cfg.name)
     create_input_fn = getattr(model_module, "create_batch_input")
     preprocess_batch = getattr(model_module, "preprocess_batch")
-    return Model(*cfg.hypers), create_input_fn, preprocess_batch
+    return Model(cfg.seed, cfg.hypers), create_input_fn, preprocess_batch
 
 
 def main():
@@ -161,7 +164,10 @@ def main():
         eval_interval=raw_cfg["training_config"]["eval_interval"],
         optimizer_cfg=OptimizerConfig(**raw_cfg["optimizer_config"]),
         model_cfg=ModelConfig(
-            raw_cfg["training_config"]["game"], **raw_cfg["model_config"]
+            raw_cfg["training_config"]["game"],
+            raw_cfg["model_config"]["name"],
+            raw_cfg["model_config"]["seed"],
+            raw_cfg["training_config"]["size"],
         ),
     )
 

@@ -43,7 +43,6 @@ class PUCB:
         # PUCB value computation. Setting to 1 should be fine even if no samples
         # are taken since default values of edges should be infinity.
         total_N = max(1, np.sum(Ns))
-        # Ns = np.clip(Ns, a_min=1, a_max=None)
         ucb_values = Q_bars + self.C * priors * (np.sqrt(total_N) / (1 + Ns))
         max_ucb = np.max(ucb_values)
         indices = np.flatnonzero(ucb_values == max_ucb)
@@ -85,11 +84,11 @@ class SoftArgmax:
 
 
 class PUCTPlayer(MCTSPlayer[ActionType]):
+    inf_client: InferenceClient | None
     def __init__(
         self,
-        inf_client: InferenceClient,
+        inf_client: InferenceClient | None,
         seed: int | None = None,
-        C: float = 1.0,
         num_samples: int = 256,
         gamma: float = 1.0,
         exploitation_threshold: int = 0,
@@ -106,7 +105,7 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         if tree_policy is not None:
             self.tree_policy = tree_policy
         else:
-            self.tree_policy = PUCB(seed, C)
+            self.tree_policy = PUCB(seed, 1.0)
         if final_policy is not None:
             self.final_policy = final_policy
         else:
@@ -115,6 +114,7 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         super().__init__(seed, num_samples, gamma, None, None, None)
 
     def evaluate_node(self, game: GameProtocol, node: Node) -> float:
+        assert self.inf_client is not None, "No server client attached"
         value, policy = self.inf_client(node.state)
         mask = np.asarray(game.legal_moves_mask(node.state), dtype=bool)
         if not mask.any():
@@ -144,6 +144,10 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         for edge in node.edges:
             edge.prior /= total
 
+    def shutdown(self) -> None:
+        if self.inf_client is not None:
+            self.inf_client.shutdown()
+
     def __call__(
         self,
         game: GameProtocol,
@@ -152,7 +156,6 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         verbose: bool = False,
     ) -> ActionType | None:
         assert game.get_actions(state), "No actions at state"
-        print(turn)
 
         root = Node(state)
         utility = self.evaluate_node(game, root)
@@ -226,7 +229,6 @@ def run_actor(id: int, request_q: Queue, response_q: Queue):
     puct_agent = PUCTPlayer(
         inf_client=client,
         seed=0,
-        C=1.0,
         num_samples=10,
         gamma=1.0,
         exploitation_threshold=10,
@@ -238,7 +240,7 @@ def run_actor(id: int, request_q: Queue, response_q: Queue):
     )
     print(puct_agent)
     # root = Node(state)
-    action = puct_agent(game, state)
+    action = puct_agent(game, state, turn=3)
     print(action)
     # print(game.get_actions(state))
     # puct_agent.evaluate_node(game, root)
