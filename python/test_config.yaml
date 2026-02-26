@@ -1,6 +1,8 @@
 game:
+  # type_: "tic_tac_toe"
+  # size: [3, 3]
   type_: "connect_four"
-  size: [6, 7]
+  size: [4, 4]
   # type_: "tic_tac_toe"
   initial_state: ""
 
@@ -10,7 +12,7 @@ player_one:
   type_: "mcts"
   # model: "m1"
   params:
-    seed: 87
+    seed: 0
     gamma: 1.0
     num_samples: 9216
     tree_policy:
@@ -24,25 +26,43 @@ player_one:
       type_: "random_rollout"
       # seed: 2
 
+# player_two:
+#   type_: "random"
+#   params:
+#     seed: 4
+
 player_two:
-  type_: "random"
+  type_: "puct"
+  server: "s1"
   params:
-    seed: 4
+    seed: 0
+    num_samples: 16
+    gamma: 1.0
+    exploitation_threshold: 1
+    training: False
+    dirichlet_epsilon: 0.2
+    dirichlet_alpha: 0.1
+    tree_policy: 
+      # seed: 1 
+      C: 1.0
+    final_policy: 
+      seed:
 
 inference_servers: [
-#   {
-#     type_: "puct",
-#     model_type: "CNN",
-#     name: "m1"
-#     ckpt_dir: "/Users/zaheen/projects/node_arena/python/checkpoints/",
-#     batch_size: 32,
-#     seed: 0,
-#     model_hypers: []
-#   },
+  {
+    name: "s1",
+    type_: "puct",
+    model_type: "CNN",
+    # ckpt_dir: "/Users/zaheen/Documents/node_arena/tic_tac_toe/checkpoints/60/",
+    # ckpt_dir: "",
+    ckpt_dir: "/Users/zaheen/Documents/node_arena/connect_four/checkpoints/200/",
+    batch_size: 4,
+    seed: 5,
+  }
+]
 #   # {
 #   #   type_: "none2",
 #   #   ckpt_dir: "some other path",
 #   #   seed: 0,
-#   #   model_hypers: [1, 2]
 #   # }
-]
+# ]

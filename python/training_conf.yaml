@@ -1,0 +1,18 @@
+training_config:
+  game: "tic_tac_toe"
+  size: [3, 3]
+  dataset_path: "/Users/zaheen/projects/node_arena/python/tic_tac_toe_3_3.h5"
+  policy_type: "dense"
+  num_iterations: 0
+  num_epochs: 40
+  batch_size: 64
+  eval_interval: 10
+  ckpt_path: "/Users/zaheen/Documents/node_arena/tic_tac_toe/checkpoints"
+optimizer_config:
+  name: "sgd"
+  kwargs:
+    learning_rate: 0.01
+    momentum: 0.99
+model_config:
+  name: "CNN"
+  seed: 0

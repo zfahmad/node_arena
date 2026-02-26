@@ -85,6 +85,7 @@ class SoftArgmax:
 
 class PUCTPlayer(MCTSPlayer[ActionType]):
     inf_client: InferenceClient | None
+
     def __init__(
         self,
         inf_client: InferenceClient | None,
@@ -147,6 +148,16 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
     def shutdown(self) -> None:
         if self.inf_client is not None:
             self.inf_client.shutdown()
+
+    def print_tree(self, root: Node, depth: int = 0) -> None:
+        indent = "    "
+        print(f"{depth * indent}{root}")
+        if not root.edges:
+            return None
+        for edge in root.edges:
+            print(f"{depth * indent + '  '}{edge}")
+            if edge.outcomes:
+                self.print_tree(edge.outcomes[0], depth + 1)
 
     def __call__(
         self,

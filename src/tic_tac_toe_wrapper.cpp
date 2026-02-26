@@ -12,7 +12,9 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .value("Two", TicTacToeState::Player::Two);
 
     nb::class_<TicTacToeState> state_class(m, "State");
-    state_class.def(nb::init<>())
+    state_class
+        .def(nb::init<int, int>(), nb::arg("num_rows") = 3,
+             nb::arg("num_cols") = 3)
         .def("print_board", &TicTacToeState::print_board)
         .def("to_compact", &TicTacToeState::to_compact)
         .def("from_compact", &TicTacToeState::from_compact)
