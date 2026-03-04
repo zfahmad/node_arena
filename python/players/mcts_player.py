@@ -122,7 +122,7 @@ class MCTSPlayer(PlayerProtocol[ActionType]):
         pass
 
     def __call__(
-        self, game: GameProtocol, state: StateProtocol, verbose: bool = False
+            self, game: GameProtocol, state: StateProtocol, turn: Optional[int], verbose: bool = False
     ) -> ActionType | None:
         assert game.get_actions(state), "No actions at state"
 

@@ -4,7 +4,7 @@ from python.players.player_protocols import PlayerProtocol
 
 
 class HumanPlayer(PlayerProtocol[ActionType]):
-    def __call__(self, game: GameProtocol, state: StateProtocol) -> ActionType:
+    def __call__(self, game: GameProtocol, state: StateProtocol, turn: int) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
         action_prompt = ""
         for ind, action in enumerate(actions):

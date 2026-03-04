@@ -1,17 +1,9 @@
 """
-parallel_play.py
+train_alpha_zero.py
 Author: Zaheen Ahmad
 
 Plays games in parallel. The number of games played concurrently depend on the
 parameter, num_procs, in the config file.
-
-List of games currently available:
-    tic_tac_toe
-    connect_four
-
-List of players currently available:
-    random
-    mcts
 
 Usage:
     play.py [options] <config-file>
@@ -25,19 +17,24 @@ Options:
 
 import importlib
 import logging
+import os
+import shutil
 import sys
 import time
+import uuid
 from dataclasses import dataclass, field, replace
 from multiprocessing import Process, Queue
 from typing import Dict, List, Optional
 
+import h5py
+import numpy as np
 import numpy.random as rand
 import yaml
 
 from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
-from python.play import Play
+from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
 from python.players.puct_inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
@@ -78,8 +75,7 @@ class Config:
     max_turns: int
     num_procs: int
     game: GameConfig
-    player_one: PlayerConfig
-    player_two: PlayerConfig
+    player: PlayerConfig
     inference_servers: List[InferenceServerConfig] = field(default_factory=list)
 
 
@@ -87,6 +83,97 @@ class Config:
 class InferenceEndpoints:
     request_queue: Queue
     response_queues: List[Queue]
+
+
+class DataGenerator:
+    def __init__(self, max_turns: int, player: PlayerProtocol):
+        self.max_turns: int = max_turns
+        self.player: PlayerProtocol = player
+
+    def write_data(self, output_path, state_arrs, masks, policies, values):
+        f = h5py.File(output_path, "w")
+        f.create_dataset("states", data=state_arrs)
+        f.create_dataset("masks", data=masks)
+        f.create_dataset("policies", data=policies)
+        f.create_dataset("values", data=values)
+        f.close()
+
+    def play(
+        self,
+        game: GameProtocol,
+        state: StateProtocol,
+        output_path: str = "",
+    ) -> None:
+        game_data_dict: dict = {
+            "game": game.get_id(),
+            "player": str(self.player),
+        }
+        turns: list[dict] = []
+        current_turn: int = 0
+        states: list[StateProtocol] = []
+        masks = []
+        policies = []
+
+        # Begin playing loop
+        while (not game.is_terminal(state)) and (current_turn < self.max_turns):
+            states.append(state)
+            root = self.player.run_tree_search(game, state)  # type: ignore
+
+            mask = game.legal_moves_mask(state)
+            policy = np.zeros_like(mask)
+            masks.append(mask)
+            policies.append(policy)
+            for edge in root.edges:
+                policy[edge.action] = edge.N
+            temp = 1.0
+            if current_turn >= self.player.exploitation_threshold:  # type: ignore
+                temp = 0.0
+            action = self.player.final_policy(root.edges, temp).action  # type: ignore
+
+            turn = {
+                "turn": current_turn,
+                "state": state.to_string(),
+                "action": action,
+            }
+            turns.append(turn)
+
+            state = game.get_next_state(state, action)
+            current_turn += 1
+
+        state.print_board()
+        turn = {
+            "turn": current_turn,
+            "state": state.to_string(),
+            "action": "-",
+        }
+        turns.append(turn)
+
+        values = []
+        state_arrs = []
+        outcome = game.get_outcome(state)
+
+        if outcome == game.Outcomes.P1Win:
+            value = 1.0
+        elif outcome == game.Outcomes.P2Win:
+            value = -1.0
+        else:
+            value = 0.0
+
+        for s in states:
+            if s.get_player() == s.Player.One:
+                values.append([value])
+            else:
+                values.append([-value])
+            state_arrs.append(state.to_array())
+
+        state_arrs = np.array(state_arrs)
+        masks = np.array(masks)
+        policies = np.array(policies)
+        values = np.array(values)
+
+        game_data_dict["outcome"] = game.get_outcome(state).name
+        game_data_dict["turns"] = turns
+        self.write_data(output_path, state_arrs, masks, policies, values)
 
 
 def generate_random_seeds(base_seed: int, num_seeds: int) -> List[int]:
@@ -125,22 +212,17 @@ def run_game(
     PF: PlayerFactory,
     cfg: Config,
     inference_endpoints: Dict[str, InferenceEndpoints],
-) -> None:
-    configure_logging(f"{cfg.output}_{game_proc_id}.log")
+):
+    configure_logging(f"{cfg.output}/game_logs/game_{game_proc_id}.log")
     logging.info(f"[proc {game_proc_id}] Loading game.")
 
     game_module = GF(cfg.game.type_)
     game = game_module.Game(*cfg.game.params)
     logging.info(f"[proc {game_proc_id}] Loaded game: {game.get_id()}")
-    print(game.get_id())
 
     # Initialize state
     # Use a specified starting state if provided.
     # Else use initial game state.
-    # if cfg.game.size:
-    #     state = game_module.State(cfg.game.size[0], cfg.game.size[1])
-    # else:
-    #     state = game_module.State()
     state = game_module.State(*cfg.game.size)
     if cfg.game.initial_state == "":
         game.reset(state)
@@ -150,16 +232,18 @@ def run_game(
         logging.info(f"[proc {game_proc_id}] Created state from specification.")
 
     # Create players
-    player_one = create_player(game_proc_id, PF, cfg.player_one, inference_endpoints)
-    player_two = create_player(game_proc_id, PF, cfg.player_two, inference_endpoints)
+    player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
 
-    # Play game
-    P = Play(cfg.max_turns, player_one, player_two)
-    logging.info(f"[proc {game_proc_id}] Beginning game.")
-    P.play(game, state, f"{cfg.output}_{game_proc_id}", cfg.verbose)
-    logging.info(f"[proc {game_proc_id}] Game end.")
-    for player in [player_one, player_two]:
-        player.shutdown()
+    # Play games
+    for _ in range(10):
+        ts = int(time.time() * 1e6)
+        fname = f"game_{ts}_{uuid.uuid4().hex}.h5"
+        P = DataGenerator(cfg.max_turns, player)
+        logging.info(f"[proc {game_proc_id}] Beginning game.")
+        P.play(game, state, f"{cfg.output}/self_play/.{fname}")
+        logging.info(f"[proc {game_proc_id}] Game end.")
+        os.rename(f"{cfg.output}/self_play/.{fname}", f"{cfg.output}/self_play/{fname}")
+    player.shutdown()
 
 
 def run_inference(
@@ -167,7 +251,7 @@ def run_inference(
     response_qs: List[Queue],
     params: InferenceServerConfig,
     log_file: str,
-) -> None:
+):
     configure_logging(f"{log_file}.log")
     logging.info(f"[server {params.name}] Creating inference model.")
 
@@ -198,8 +282,13 @@ def main():
     # Generate default output name if not given
     t = time.localtime()
     t_str = "_".join(map(str, [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]))
-    output = arguments["--output"] or t_str
-    configure_logging(f"{output}.log")
+    output = arguments["--output"]
+    log_file = output + t_str
+    configure_logging(f"{log_file}.log")
+    os.makedirs(output + "game_logs", exist_ok=True)
+    if os.path.exists(output + "self_play"):
+        shutil.rmtree(output + "self_play")
+    os.makedirs(output + "self_play", exist_ok=True)
 
     # Load config file
     logging.info(f"Loading config file: {arguments['<config-file>']}")
@@ -217,8 +306,7 @@ def main():
         max_turns=int(arguments.get("--max-turns", raw_cfg.get("max_turns", 100))),
         num_procs=raw_cfg["num_procs"],
         game=GameConfig(**raw_cfg["game"]),
-        player_one=PlayerConfig(**raw_cfg["player_one"]),
-        player_two=PlayerConfig(**raw_cfg["player_two"]),
+        player=PlayerConfig(**raw_cfg["player"]),
         inference_servers=[
             InferenceServerConfig(
                 **s,
@@ -254,19 +342,13 @@ def main():
         p.start()
 
     # Generate seeds for each actor process
-    seeds_p1 = generate_random_seeds(cfg.player_one.params["seed"], cfg.num_procs)
-    seeds_p2 = generate_random_seeds(cfg.player_two.params["seed"], cfg.num_procs)
+    seeds = generate_random_seeds(cfg.player.params["seed"], cfg.num_procs)
 
     # Generate per-process configs
     actor_configs = [
         replace(
             cfg,
-            player_one=replace(
-                cfg.player_one, params={**cfg.player_one.params, "seed": seeds_p1[i]}
-            ),
-            player_two=replace(
-                cfg.player_two, params={**cfg.player_two.params, "seed": seeds_p2[i]}
-            ),
+            player=replace(cfg.player, params={**cfg.player.params, "seed": seeds[i]}),
         )
         for i in range(cfg.num_procs)
     ]

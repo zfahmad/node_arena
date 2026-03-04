@@ -159,13 +159,32 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             if edge.outcomes:
                 self.print_tree(edge.outcomes[0], depth + 1)
 
+
+    def run_tree_search(self, game: GameProtocol, state: StateProtocol) -> Node:
+        # Function used for AlphaZero training.
+        # Returns the resultant policy and moves mask.
+        root = Node(state)
+        utility = self.evaluate_node(game, root)
+        self.expand_node(game, root)
+        root.N = 1
+        root.V = utility
+
+        if self.training:
+            self.inject_dirichlet_noise(root)
+
+        for _ in range(self.num_samples - 1):
+            self.traverse(game, root)
+
+        return root
+
+
     def __call__(
         self,
         game: GameProtocol,
         state: StateProtocol,
         turn: int = 0,
         verbose: bool = False,
-    ) -> ActionType | None:
+    ) -> ActionType:
         assert game.get_actions(state), "No actions at state"
 
         root = Node(state)
@@ -184,7 +203,7 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             self.print_tree(root)
         temp = 1.0
         if turn >= self.exploitation_threshold:
-            temp = 0
+            temp = 0.0
         action: ActionType = self.final_policy(root.edges, temp).action
 
         return action

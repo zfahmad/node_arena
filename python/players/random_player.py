@@ -20,7 +20,7 @@ class RandomPlayer(PlayerProtocol[ActionType]):
     def shutdown(self) -> None:
         pass
 
-    def __call__(self, game: GameProtocol, state: StateProtocol) -> ActionType:
+    def __call__(self, game: GameProtocol, state: StateProtocol, turn: int) -> ActionType:
         actions: list[ActionType] = game.get_actions(state)
         return self._rand.choice(actions)
 

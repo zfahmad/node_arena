@@ -69,7 +69,7 @@ class InferenceServer:
             # Receive batch of data from request queue
             while len(batch) < self.batch_size:
                 try:
-                    state, actor_id = request_q.get(timeout=0.5)
+                    state, actor_id = request_q.get(timeout=0.25)
                     if state is None:
                         terminated_actors += 1
                         continue

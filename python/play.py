@@ -38,7 +38,6 @@ from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
-from python.players.puct_inference_server import InferenceClient
 
 
 class Play:
@@ -68,7 +67,7 @@ class Play:
         # Begin playing loop
         while (not game.is_terminal(state)) and (current_turn < self.max_turns):
             player = self.players[current_player(current_turn)]
-            action = player(game, state)
+            action = player(game, state, current_turn)
 
             turn = {
                 "turn": current_turn,
