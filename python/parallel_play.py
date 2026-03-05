@@ -137,10 +137,6 @@ def run_game(
     # Initialize state
     # Use a specified starting state if provided.
     # Else use initial game state.
-    # if cfg.game.size:
-    #     state = game_module.State(cfg.game.size[0], cfg.game.size[1])
-    # else:
-    #     state = game_module.State()
     state = game_module.State(*cfg.game.size)
     if cfg.game.initial_state == "":
         game.reset(state)

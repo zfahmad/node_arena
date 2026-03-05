@@ -39,6 +39,8 @@ from python.players.player_protocols import PlayerProtocol
 from python.players.puct_inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 
+# TODO: Implement code to handle players other than PUCT
+
 
 @dataclass
 class PlayerConfig:
@@ -98,6 +100,7 @@ class DataGenerator:
         f.create_dataset("values", data=values)
         f.close()
 
+    # NOTE: CURRENTLY ONLY HANDLES PUCT!!!
     def play(
         self,
         game: GameProtocol,
@@ -237,12 +240,14 @@ def run_game(
     # Play games
     for _ in range(10):
         ts = int(time.time() * 1e6)
-        fname = f"game_{ts}_{uuid.uuid4().hex}.h5"
+        fname = f"game_{ts}_{uuid.uuid4().hex}"
         P = DataGenerator(cfg.max_turns, player)
         logging.info(f"[proc {game_proc_id}] Beginning game.")
-        P.play(game, state, f"{cfg.output}/self_play/.{fname}")
+        P.play(game, state, f"{cfg.output}/self_play/{fname}.tmp")
         logging.info(f"[proc {game_proc_id}] Game end.")
-        os.rename(f"{cfg.output}/self_play/.{fname}", f"{cfg.output}/self_play/{fname}")
+        os.rename(
+            f"{cfg.output}/self_play/{fname}.tmp", f"{cfg.output}/self_play/{fname}.h5"
+        )
     player.shutdown()
 
 
@@ -368,10 +373,13 @@ def main():
         for proc_id in range(cfg.num_procs)
     ]
 
+    # Start actors and wait until they finish
     for p in actor_processes:
         p.start()
     for p in actor_processes:
         p.join()
+
+    # Close inference process
     for p in inf_processes:
         p.join()
 
