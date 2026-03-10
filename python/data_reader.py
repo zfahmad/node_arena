@@ -3,26 +3,7 @@ from typing import Optional
 
 import h5py
 import numpy as np
-
-
-@dataclass
-class DensePolicy:
-    mask: np.ndarray
-    policy: np.ndarray
-
-
-@dataclass
-class SparsePolicy:
-    actions: np.ndarray
-    weights: np.ndarray
-
-
-@dataclass
-class Batch:
-    states: np.ndarray
-    values: np.ndarray
-    dense_policy: Optional[DensePolicy] = None
-    sparse_policy: Optional[SparsePolicy] = None
+from python.configs import Batch, DensePolicy, SparsePolicy
 
 
 class DataReader:

@@ -12,6 +12,7 @@ Options:
     -h --help                   # Show this screen
     -o FILE --output=FILE       # Specify output path for game data
     -v --verbose                # Print to stdout
+    --resume                    # Restart self-play training [default: False]
     --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
 """
 
@@ -22,161 +23,27 @@ import shutil
 import sys
 import time
 import uuid
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
+import multiprocessing as mp
 from multiprocessing import Process, Queue
-from typing import Dict, List, Optional
+from multiprocessing.synchronize import Event
+from typing import Dict, List
 
-import h5py
-import numpy as np
 import numpy.random as rand
 import yaml
 
+from python.alpha_zero_data_generator import DataGenerator
+from python.alpha_zero_learner import Learner
+from python.alpha_zero_replay_buffer import ReplayBuffer
+from python.configs import *
 from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
-from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
 from python.players.puct_inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 
 # TODO: Implement code to handle players other than PUCT
-
-
-@dataclass
-class PlayerConfig:
-    type_: str
-    params: dict
-    server: Optional[str] = None
-
-
-@dataclass
-class GameConfig:
-    type_: str
-    params: list[int]
-    size: list[int]
-    initial_state: str = ""
-
-
-@dataclass
-class InferenceServerConfig:
-    game_str: str
-    name: str
-    type_: str
-    num_actors: int
-    batch_size: int
-    model_type: str
-    ckpt_dir: str
-    seed: int
-    dims: list[int]
-
-
-@dataclass
-class Config:
-    output: str
-    verbose: bool
-    max_turns: int
-    num_procs: int
-    game: GameConfig
-    player: PlayerConfig
-    inference_servers: List[InferenceServerConfig] = field(default_factory=list)
-
-
-@dataclass
-class InferenceEndpoints:
-    request_queue: Queue
-    response_queues: List[Queue]
-
-
-class DataGenerator:
-    def __init__(self, max_turns: int, player: PlayerProtocol):
-        self.max_turns: int = max_turns
-        self.player: PlayerProtocol = player
-
-    def write_data(self, output_path, state_arrs, masks, policies, values):
-        f = h5py.File(output_path, "w")
-        f.create_dataset("states", data=state_arrs)
-        f.create_dataset("masks", data=masks)
-        f.create_dataset("policies", data=policies)
-        f.create_dataset("values", data=values)
-        f.close()
-
-    # NOTE: CURRENTLY ONLY HANDLES PUCT!!!
-    def play(
-        self,
-        game: GameProtocol,
-        state: StateProtocol,
-        output_path: str = "",
-    ) -> None:
-        game_data_dict: dict = {
-            "game": game.get_id(),
-            "player": str(self.player),
-        }
-        turns: list[dict] = []
-        current_turn: int = 0
-        states: list[StateProtocol] = []
-        masks = []
-        policies = []
-
-        # Begin playing loop
-        while (not game.is_terminal(state)) and (current_turn < self.max_turns):
-            states.append(state)
-            root = self.player.run_tree_search(game, state)  # type: ignore
-
-            mask = game.legal_moves_mask(state)
-            policy = np.zeros_like(mask)
-            masks.append(mask)
-            policies.append(policy)
-            for edge in root.edges:
-                policy[edge.action] = edge.N
-            temp = 1.0
-            if current_turn >= self.player.exploitation_threshold:  # type: ignore
-                temp = 0.0
-            action = self.player.final_policy(root.edges, temp).action  # type: ignore
-
-            turn = {
-                "turn": current_turn,
-                "state": state.to_string(),
-                "action": action,
-            }
-            turns.append(turn)
-
-            state = game.get_next_state(state, action)
-            current_turn += 1
-
-        state.print_board()
-        turn = {
-            "turn": current_turn,
-            "state": state.to_string(),
-            "action": "-",
-        }
-        turns.append(turn)
-
-        values = []
-        state_arrs = []
-        outcome = game.get_outcome(state)
-
-        if outcome == game.Outcomes.P1Win:
-            value = 1.0
-        elif outcome == game.Outcomes.P2Win:
-            value = -1.0
-        else:
-            value = 0.0
-
-        for s in states:
-            if s.get_player() == s.Player.One:
-                values.append([value])
-            else:
-                values.append([-value])
-            state_arrs.append(state.to_array())
-
-        state_arrs = np.array(state_arrs)
-        masks = np.array(masks)
-        policies = np.array(policies)
-        values = np.array(values)
-
-        game_data_dict["outcome"] = game.get_outcome(state).name
-        game_data_dict["turns"] = turns
-        self.write_data(output_path, state_arrs, masks, policies, values)
 
 
 def generate_random_seeds(base_seed: int, num_seeds: int) -> List[int]:
@@ -238,7 +105,8 @@ def run_game(
     player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
 
     # Play games
-    for _ in range(10):
+    # for _ in range(10):
+    while True:
         ts = int(time.time() * 1e6)
         fname = f"game_{ts}_{uuid.uuid4().hex}"
         P = DataGenerator(cfg.max_turns, player)
@@ -256,6 +124,7 @@ def run_inference(
     response_qs: List[Queue],
     params: InferenceServerConfig,
     log_file: str,
+    update_model: Event,
 ):
     configure_logging(f"{log_file}.log")
     logging.info(f"[server {params.name}] Creating inference model.")
@@ -276,7 +145,35 @@ def run_inference(
         dims=params.dims,
     )
 
-    inference_server(request_q, response_qs)  # runs until all clients shutdown
+    inference_server(request_q, response_qs, update_model)  # runs until all clients shutdown
+
+
+def run_learner(params: LearnerConfig):
+    rb = ReplayBuffer(
+        seed=params.seed,
+        data_dir=params.working_dir,
+        batch_size=params.batch_size,
+        buffer_size=params.buffer_size,
+    )
+    rb.start_indexing_thread()
+
+    buffer_time = 5
+    time.sleep(buffer_time)
+
+    learner = Learner(
+        params.game_cfg,
+        params.model_cfg,
+        params.optimizer_cfg,
+        params.working_dir,
+        params.ckpt_path,
+        params.save_interval,
+        params.update_model,
+    )
+    step = 0
+    while True:
+        batch = rb.get_next_batch()
+        learner(batch)
+        step += 1
 
 
 def main():
@@ -288,12 +185,17 @@ def main():
     t = time.localtime()
     t_str = "_".join(map(str, [t.tm_year, t.tm_mon, t.tm_hour, t.tm_min, t.tm_sec]))
     output = arguments["--output"]
-    log_file = output + t_str
+    log_file = os.path.join(output, t_str)
     configure_logging(f"{log_file}.log")
-    os.makedirs(output + "game_logs", exist_ok=True)
-    if os.path.exists(output + "self_play"):
-        shutil.rmtree(output + "self_play")
-    os.makedirs(output + "self_play", exist_ok=True)
+
+    if not bool(arguments["--resume"]):
+        shutil.rmtree(os.path.join(output, "game_logs"))
+        shutil.rmtree(os.path.join(output, "self_play"))
+        shutil.rmtree(os.path.join(output, "checkpoints"))
+
+    os.makedirs(os.path.join(output, "game_logs"), exist_ok=True)
+    os.makedirs(os.path.join(output, "self_play"), exist_ok=True)
+    os.makedirs(os.path.join(output, "checkpoints"), exist_ok=True)
 
     # Load config file
     logging.info(f"Loading config file: {arguments['<config-file>']}")
@@ -322,8 +224,10 @@ def main():
             for s in raw_cfg.get("inference_servers", [])
         ],
     )
+    update_model = mp.Event()
 
     # Setup factories
+    logging.info("Setting up player and game factories.")
     game_factory = GameFactory()
     player_factory = PlayerFactory()
 
@@ -331,23 +235,25 @@ def main():
     inference_endpoints: Dict[str, InferenceEndpoints] = {}
     inf_processes = []
 
+    logging.info("Setting up inference server process.")
     for server_cfg in cfg.inference_servers:
         request_queue = Queue()
         response_queues = [Queue() for _ in range(cfg.num_procs)]
         inf_process = Process(
             target=run_inference,
-            args=(request_queue, response_queues, server_cfg, cfg.output),
+            args=(request_queue, response_queues, server_cfg, cfg.output, update_model),
         )
         inf_processes.append(inf_process)
         inference_endpoints[server_cfg.name] = InferenceEndpoints(
             request_queue=request_queue, response_queues=response_queues
         )
 
+    logging.info("Starting inference server...")
     for p in inf_processes:
         p.start()
 
     # Generate seeds for each actor process
-    seeds = generate_random_seeds(cfg.player.params["seed"], cfg.num_procs)
+    seeds = generate_random_seeds(cfg.player.params["seed"], cfg.num_procs + 1)
 
     # Generate per-process configs
     actor_configs = [
@@ -373,15 +279,41 @@ def main():
         for proc_id in range(cfg.num_procs)
     ]
 
+    learner_cfg = LearnerConfig(
+        seed=seeds[-1],
+        working_dir=cfg.output,
+        batch_size=cfg.inference_servers[0].batch_size,
+        buffer_size=raw_cfg["learner"]["buffer_size"],
+        game_cfg=cfg.game,
+        ckpt_path=cfg.inference_servers[0].ckpt_dir,
+        save_interval=raw_cfg["learner"]["save_interval"],
+        update_model=update_model,
+        model_cfg=ModelConfig(
+            cfg.game.type_,
+            cfg.inference_servers[0].model_type,
+            seed=seeds[-1],
+            hypers=cfg.game.size,
+        ),
+        optimizer_cfg=OptimizerConfig(
+            raw_cfg["learner"]["optimizer"]["name"],
+            raw_cfg["learner"]["optimizer"]["kwargs"],
+        ),
+    )
+
+    learner_process = Process(target=run_learner, args=(learner_cfg,))
+
     # Start actors and wait until they finish
     for p in actor_processes:
         p.start()
+
+    learner_process.start()
+
     for p in actor_processes:
         p.join()
-
     # Close inference process
     for p in inf_processes:
         p.join()
+    learner_process.join()
 
 
 if __name__ == "__main__":

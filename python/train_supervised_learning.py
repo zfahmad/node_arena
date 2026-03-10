@@ -27,36 +27,8 @@ from jax.typing import ArrayLike
 from orbax import checkpoint as ckp
 
 from python.configure_logging import configure_logging
-from python.data_reader import Batch, DataReader
-
-
-@dataclass
-class OptimizerConfig:
-    name: str
-    kwargs: dict
-
-
-@dataclass
-class TrainingConfig:
-    game: str
-    size: list[int]
-    dataset_path: str
-    policy_type: str
-    optimizer_cfg: OptimizerConfig
-    model_cfg: ModelConfig
-    eval_interval: int = 1
-    num_iterations: int = 0
-    num_epochs: int = 1
-    batch_size: int = 32
-    ckpt_path: str = "./"
-
-
-@dataclass
-class ModelConfig:
-    type_: str
-    name: str
-    seed: int
-    hypers: list[Any]
+from python.data_reader import DataReader
+from python.configs import ModelConfig, OptimizerConfig, Batch, TrainingConfig
 
 
 def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:

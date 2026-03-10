@@ -1,7 +1,7 @@
-import importlib
 import os
 import queue
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
+from multiprocessing.synchronize import Event
 from typing import Any, Callable, Sequence
 
 import jax.numpy as jnp
@@ -46,21 +46,40 @@ class InferenceServer:
         # arrays.
         self.create_batch_input = create_batch_input
         self.create_padding = create_padding
-        self.num_actors = num_actors
 
-        # Load the model checkpoint at the path specified by ckpt_path.
-        if ckpt_path != "":
-            if not os.path.exists(ckpt_path):
-                raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
-            graphdef, state = nnx.split(model)
-            checkpointer = ocp.StandardCheckpointer()
-            state = checkpointer.restore(ckpt_path + "state", target=state)
-            model = nnx.merge(graphdef, state)
-        # jit compile the loaded model
-        self.jit_model = jit(model)
+        self.num_actors = num_actors
+        self.ckpt_path = ckpt_path
+        self.model = model
+        graphdef, params = nnx.split(self.model)
+        self.graphdef = graphdef
+        self.params = params
+        self.infer = self._compile_inference()
+        self._load_model()
         self.dims = tuple(dims)
 
-    def __call__(self, request_q: Queue, response_qs: list[Queue]) -> None:
+    def _compile_inference(self):
+        @jit
+        def infer(params, x):
+            model_instance = nnx.merge(self.graphdef, params)
+            return model_instance(x)
+
+        return infer
+
+    def _load_model(self):
+        # Load the model checkpoint at the path specified by ckpt_path.
+        if os.path.exists(self.ckpt_path):
+            checkpointer = ocp.StandardCheckpointer()
+            self.params = checkpointer.restore(
+                os.path.join(self.ckpt_path, "state"),
+                target=self.params,
+            )
+
+    def __call__(
+        self,
+        request_q: Queue,
+        response_qs: list[Queue],
+        update_model: Event | None = None,
+    ) -> None:
         terminated_actors: int = 0
         # Loop while actor processes are actively playing
         while terminated_actors < self.num_actors:
@@ -69,7 +88,7 @@ class InferenceServer:
             # Receive batch of data from request queue
             while len(batch) < self.batch_size:
                 try:
-                    state, actor_id = request_q.get(timeout=0.25)
+                    state, actor_id = request_q.get(timeout=0.025)
                     if state is None:
                         terminated_actors += 1
                         continue
@@ -89,99 +108,16 @@ class InferenceServer:
                     batch.append(self.create_padding(self.dims))
 
             input_batch = self.create_batch_input(jnp.array(batch), self.dims)
-            values, policies = self.jit_model(input_batch)
+            # values, policies = self.model(input_batch)
+            values, policies = self.infer(self.params, input_batch)
 
             for index, actor_id in enumerate(actor_ids):
                 response_qs[actor_id].put(
                     (np.asarray(values[index]), np.asarray(policies[index]))
                 )
 
-
-def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> None:
-    # TODO: Maybe take model specs as dict?
-
-    # Load model for specified game
-    gm = importlib.import_module(f"python.models.{params["game_str"]}_nn")
-    model = getattr(gm, params["model_type"])
-    m = model(params["seed"], params["hypers"])
-
-    # Create inference server
-    print(f"Creating inference server: {os.getpid()}")
-    inference_server = InferenceServer(
-        params["batch_size"],
-        params["num_actors"],
-        gm.create_batch_input,
-        gm.create_padding,
-        m,
-        params["model_ckpt_path"],
-        [3, 3],
-    )
-
-    # Await requests and process mini-batches until all actors terminate
-    # while not shutdown_event.is_set():
-    inference_server(request_q, response_qs)
-
-
-def run_clients(id: int, request_q: Queue, response_q: Queue):
-    import random
-
-    import python.wrappers.tic_tac_toe_wrapper as gm
-
-    game = gm.Game()
-    state = gm.State()
-    game.reset(state)
-    state = game.get_next_state(state, random.choice(game.get_actions(state)))
-    state.print_board()
-    print(f"Creating inference client: {os.getpid()}")
-    client = InferenceClient(id, request_q, response_q)
-    client(state)
-    client.shutdown()
-
-
-def main():
-    import python.wrappers.tic_tac_toe_wrapper as gm
-
-    game = gm.Game()
-    print(game.get_id())
-    state = gm.State()
-    game.reset(state)
-    num_actors = 5
-    batch_size = 5
-    request_q = Queue()
-    response_qs = [Queue() for _ in range(num_actors)]
-    model_type = "CNN"
-    # ckpt_path = "/Users/zaheen/projects/node_arena/python/checkpoints/"
-    ckpt_path = "/Users/zaheen/Documents/node_arena/test/checkpoints/60/"
-    game_str = "tic_tac_toe"
-    model_params = {
-        "game_str": game_str,
-        "batch_size": batch_size,
-        "num_actors": num_actors,
-        "model_type": model_type,
-        "model_ckpt_path": ckpt_path,
-        "seed": 0,
-        "hypers": [3, 3],
-    }
-
-    inference_proc = Process(
-        target=run_inference,
-        args=(request_q, response_qs, model_params),
-    )
-    inference_proc.start()
-
-    clients = [
-        Process(target=run_clients, args=(i, request_q, response_qs[i]))
-        for i in range(num_actors)
-    ]
-
-    for i in range(num_actors):
-        clients[i].start()
-
-    for i in range(num_actors):
-        clients[i].join()
-
-    inference_proc.join()
-
-
-# if __name__ == "__main__":
-#     main()
+            # Reloads the model weights given a signal.
+            # Mainly used in AlphaZero self-play training.
+            if (update_model is not None) and (update_model.is_set()):
+                self._load_model()
+                update_model.clear()
