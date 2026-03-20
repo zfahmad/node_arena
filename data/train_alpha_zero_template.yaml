@@ -1,0 +1,43 @@
+game:
+  type_: ""
+  params: []
+  size: []
+  initial_state: ""
+
+num_procs:
+
+player:
+  type_: "puct"
+  server: "s1"
+  params:
+    seed: 0
+    num_samples: 16
+    gamma: 1.0
+    exploitation_threshold: 1
+    training: True
+    dirichlet_epsilon: 0.2
+    dirichlet_alpha: 0.1
+    tree_policy:
+      seed:
+      C: 1.0
+    final_policy:
+      seed:
+
+inference_servers: [{
+    name: "s1",
+    type_: "puct",
+    model_type: "CNN",
+    ckpt_dir: "",
+    batch_size: 32,
+    seed: 5,
+  }]
+
+learner:
+  batch_size: 
+  buffer_size: 1000
+  save_interval: 250
+  optimizer:
+    name: "sgd"
+    kwargs:
+      learning_rate: 0.01
+      momentum: 0.99

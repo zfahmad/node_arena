@@ -26,7 +26,7 @@ class Learner:
         self.save_interval = save_interval
         self.working_dir = os.path.join(working_dir, "checkpoints")
         ckpt_opts = ocp.CheckpointManagerOptions(
-            max_to_keep=3, save_interval_steps=self.save_interval
+            save_interval_steps=self.save_interval
         )
         ckptrs = {"state": ocp.StandardCheckpointer()}
         self.mngr = ocp.CheckpointManager(

@@ -18,13 +18,13 @@ Options:
 
 import importlib
 import logging
+import multiprocessing as mp
 import os
 import shutil
 import sys
 import time
 import uuid
 from dataclasses import replace
-import multiprocessing as mp
 from multiprocessing import Process, Queue
 from multiprocessing.synchronize import Event
 from typing import Dict, List
@@ -69,6 +69,8 @@ def create_player(
             endpoints.request_queue,
             endpoints.response_queues[proc_id],  # only this player's queue
         )
+        # INFO: I may want to rethink this. Maybe have a protocol for inference
+        # based players if I want to use other types of learning agents.
         if isinstance(player, PUCTPlayer):
             player.inf_client = client
 
@@ -104,8 +106,7 @@ def run_game(
     # Create players
     player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
 
-    # Play games
-    # for _ in range(10):
+    # Keep playing games to generate data.
     while True:
         ts = int(time.time() * 1e6)
         fname = f"game_{ts}_{uuid.uuid4().hex}"
@@ -116,7 +117,7 @@ def run_game(
         os.rename(
             f"{cfg.output}/self_play/{fname}.tmp", f"{cfg.output}/self_play/{fname}.h5"
         )
-    player.shutdown()
+    player.shutdown()  # Currently does nothing --- used if playing finite number of games
 
 
 def run_inference(
@@ -145,7 +146,9 @@ def run_inference(
         dims=params.dims,
     )
 
-    inference_server(request_q, response_qs, update_model)  # runs until all clients shutdown
+    inference_server(
+        request_q, response_qs, update_model
+    )  # runs until all clients shutdown
 
 
 def run_learner(params: LearnerConfig):
@@ -157,6 +160,7 @@ def run_learner(params: LearnerConfig):
     )
     rb.start_indexing_thread()
 
+    # Delay learning until some games are generated.
     buffer_time = 5
     time.sleep(buffer_time)
 
@@ -169,11 +173,9 @@ def run_learner(params: LearnerConfig):
         params.save_interval,
         params.update_model,
     )
-    step = 0
     while True:
         batch = rb.get_next_batch()
         learner(batch)
-        step += 1
 
 
 def main():

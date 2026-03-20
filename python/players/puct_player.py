@@ -1,15 +1,10 @@
-import importlib
-import os
-from multiprocessing import Process, Queue
-from typing import Type
-
 import numpy as np
 import numpy.random as rnd
 from scipy.special import softmax
 
 from python.game_protocols import ActionType, GameProtocol, StateProtocol
 from python.players.mcts_player import Edge, MCTSPlayer, Node
-from python.players.puct_inference_server import InferenceClient, InferenceServer
+from python.players.puct_inference_server import InferenceClient
 
 
 class PUCB:
@@ -159,7 +154,6 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             if edge.outcomes:
                 self.print_tree(edge.outcomes[0], depth + 1)
 
-
     def run_tree_search(self, game: GameProtocol, state: StateProtocol) -> Node:
         # Function used for AlphaZero training.
         # Returns the resultant policy and moves mask.
@@ -176,7 +170,6 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             self.traverse(game, root)
 
         return root
-
 
     def __call__(
         self,
@@ -214,119 +207,3 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             f"gamma:{self.gamma},TP:{self.tree_policy},"
             f"FP:{self.final_policy}"
         )
-
-
-def run_inference(request_q: Queue, response_qs: list[Queue], params: dict) -> None:
-    # TODO: Maybe take model specs as dict?
-
-    # Load model for specified game
-    gm = importlib.import_module(f"python.models.{params["game_str"]}_nn")
-    model = getattr(gm, params["model_type"])
-    m = model(*params["hypers"])
-
-    # Create inference server
-    print(f"Creating inference server: {os.getpid()}")
-    inference_server = InferenceServer(
-        params["batch_size"],
-        params["num_actors"],
-        gm.create_batch_input,
-        gm.create_padding,
-        m,
-        params["model_ckpt_path"],
-        [3, 3],
-    )
-
-    # Await requests and process mini-batches until all actors terminate
-    # while not shutdown_event.is_set():
-    inference_server(request_q, response_qs)
-
-
-def run_actor(id: int, request_q: Queue, response_q: Queue):
-    import random
-
-    import python.wrappers.tic_tac_toe_wrapper as gm
-
-    game = gm.Game()
-    state = gm.State()
-    game.reset(state)
-    state = game.get_next_state(state, random.choice(game.get_actions(state)))
-    state.print_board()
-    print(f"Creating inference client: {os.getpid()}")
-    tree_policy = PUCB(C=1.0, seed=0)
-    final_policy = SoftArgmax(seed=0)
-    # evaluation_function = RandomRollout(seed=10, max_depth=30)
-    client = InferenceClient(id, request_q, response_q)
-    puct_agent = PUCTPlayer(
-        inf_client=client,
-        seed=0,
-        num_samples=10,
-        gamma=1.0,
-        exploitation_threshold=10,
-        training=True,
-        dirichlet_epsilon=0.1,
-        dirichlet_alpha=0.3,
-        tree_policy=tree_policy,
-        final_policy=final_policy,
-    )
-    print(puct_agent)
-    # root = Node(state)
-    action = puct_agent(game, state, turn=3)
-    print(action)
-    # print(game.get_actions(state))
-    # puct_agent.evaluate_node(game, root)
-    # puct_agent.expand_node(game, root)
-    # for edge in root.edges:
-    #     print(edge)
-    client.shutdown()
-
-
-def main():
-
-    import python.wrappers.tic_tac_toe_wrapper as gm
-
-    # from python.players.puct_inference_server import InferenceServer, run_inference
-
-    game = gm.Game()
-    print(game.get_id())
-    state = gm.State()
-    game.reset(state)
-    num_actors = 1
-    batch_size = 1
-    request_q = Queue()
-    response_qs = [Queue() for _ in range(num_actors)]
-    model_type = "CNN"
-    # ckpt_path = "/Users/zaheen/projects/node_arena/python/checkpoints/"
-    ckpt_path = "/Users/zaheen/Documents/node_arena/test/checkpoints/60/"
-    game_str = "tic_tac_toe"
-    model_params = {
-        "game_str": game_str,
-        "batch_size": batch_size,
-        "num_actors": num_actors,
-        "model_type": model_type,
-        "model_ckpt_path": ckpt_path,
-        "hypers": [0, [3, 3]],
-    }
-
-    print("Starting inference server.")
-    inference_proc = Process(
-        target=run_inference,
-        args=(request_q, response_qs, model_params),
-    )
-    inference_proc.start()
-
-    clients = [
-        Process(target=run_actor, args=(i, request_q, response_qs[i]))
-        for i in range(num_actors)
-    ]
-
-    for i in range(num_actors):
-        clients[i].start()
-
-    for i in range(num_actors):
-        clients[i].join()
-
-    inference_proc.join()
-
-
-if __name__ == "__main__":
-    main()
