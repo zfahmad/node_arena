@@ -41,13 +41,16 @@ class DataGenerator:
             mask = game.legal_moves_mask(state)
             policy = np.zeros_like(mask)
             masks.append(mask)
-            policies.append(policy)
             for edge in root.edges:
                 policy[edge.action] = edge.N
             temp = 1.0
             if current_turn >= self.player.exploitation_threshold:  # type: ignore
                 temp = 0.0
             action = self.player.final_policy(root.edges, temp).action  # type: ignore
+            if temp == 1.0:
+                policy = policy ** (1 / temp)
+            policy = policy / policy.sum()
+            policies.append(policy)
 
             turn = {
                 "turn": current_turn,
@@ -82,7 +85,7 @@ class DataGenerator:
                 values.append([value])
             else:
                 values.append([-value])
-            state_arrs.append(state.to_array())
+            state_arrs.append(s.to_array())
 
         state_arrs = np.array(state_arrs)
         masks = np.array(masks)

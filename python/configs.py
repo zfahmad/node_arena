@@ -22,13 +22,21 @@ class GameConfig:
 
 
 @dataclass
+class ModelConfig:
+    type_: str
+    name: str
+    seed: int
+    hypers: dict
+
+
+@dataclass
 class InferenceServerConfig:
     game_str: str
     name: str
     type_: str
     num_actors: int
     batch_size: int
-    model_type: str
+    model_cfg: ModelConfig
     ckpt_dir: str
     seed: int
     dims: list[int]
@@ -47,14 +55,6 @@ class TrainingConfig:
     num_epochs: int = 1
     batch_size: int = 32
     ckpt_path: str = "./"
-
-
-@dataclass
-class ModelConfig:
-    type_: str
-    name: str
-    seed: int
-    hypers: list[Any]
 
 
 @dataclass

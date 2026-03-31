@@ -42,14 +42,9 @@ from python.factories.player_factory import PlayerFactory
 from python.players.player_protocols import PlayerProtocol
 from python.players.puct_inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
+from python.utils.seed_gen import generate_random_seeds
 
 # TODO: Implement code to handle players other than PUCT
-
-
-def generate_random_seeds(base_seed: int, num_seeds: int) -> List[int]:
-    seed_sequence = rand.SeedSequence(base_seed)
-    child_seeds = seed_sequence.spawn(num_seeds)
-    return [int(seed.generate_state(1)[0]) for seed in child_seeds]
 
 
 def create_player(
@@ -127,12 +122,13 @@ def run_inference(
     log_file: str,
     update_model: Event,
 ):
+    print(params)
     configure_logging(f"{log_file}.log")
     logging.info(f"[server {params.name}] Creating inference model.")
 
     game_module = importlib.import_module(f"python.models.{params.game_str}_nn")
-    Model = getattr(game_module, params.model_type)
-    model = Model(params.seed, params.dims)
+    Model = getattr(game_module, params.model_cfg.name)
+    model = Model(params.seed, **params.model_cfg.hypers)
 
     logging.info(f"[server {params.name}] Creating inference server")
     sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
@@ -161,6 +157,8 @@ def run_learner(params: LearnerConfig):
     rb.start_indexing_thread()
 
     # Delay learning until some games are generated.
+    while len(os.listdir(os.path.join(params.working_dir, "self_play"))) < 50:
+        time.sleep(2)
     buffer_time = 5
     time.sleep(buffer_time)
 
@@ -191,9 +189,12 @@ def main():
     configure_logging(f"{log_file}.log")
 
     if not bool(arguments["--resume"]):
-        shutil.rmtree(os.path.join(output, "game_logs"))
-        shutil.rmtree(os.path.join(output, "self_play"))
-        shutil.rmtree(os.path.join(output, "checkpoints"))
+        if os.path.exists(os.path.join(output, "game_logs")):
+            shutil.rmtree(os.path.join(output, "game_logs"))
+        if os.path.exists(os.path.join(output, "self_play")):
+            shutil.rmtree(os.path.join(output, "self_play"))
+        if os.path.exists(os.path.join(output, "checkpoints")):
+            shutil.rmtree(os.path.join(output, "checkpoints"))
 
     os.makedirs(os.path.join(output, "game_logs"), exist_ok=True)
     os.makedirs(os.path.join(output, "self_play"), exist_ok=True)
@@ -208,7 +209,30 @@ def main():
         logging.error(f"Config file does not exist: {arguments['<config-file>']}")
         sys.exit(1)
 
+    # Generate seeds for each actor process
+    seeds = generate_random_seeds(raw_cfg["master_seed"], raw_cfg["num_procs"] + 2)
+
     # Build dataclass config
+    inference_servers = [
+        InferenceServerConfig(
+            game_str=raw_cfg["game"]["type_"],
+            dims=raw_cfg["game"]["size"],
+            num_actors=raw_cfg["num_procs"],
+            seed=seeds[-1],
+            name=s["name"],
+            type_=s["type_"],
+            batch_size=s["batch_size"],
+            ckpt_dir=os.path.join(output, "checkpoints/latest"),
+            model_cfg=ModelConfig(
+                type_=raw_cfg["game"]["type_"],
+                name=s["model_cfg"]["name"],
+                seed=seeds[-2],
+                hypers=s["model_cfg"]["hypers"],
+            ),
+        )
+        for s in raw_cfg.get("inference_servers", [])
+    ]
+
     cfg = Config(
         output=output,
         verbose=arguments.get("--verbose", False),
@@ -216,15 +240,7 @@ def main():
         num_procs=raw_cfg["num_procs"],
         game=GameConfig(**raw_cfg["game"]),
         player=PlayerConfig(**raw_cfg["player"]),
-        inference_servers=[
-            InferenceServerConfig(
-                **s,
-                game_str=raw_cfg["game"]["type_"],
-                dims=raw_cfg["game"]["size"],
-                num_actors=raw_cfg["num_procs"],
-            )
-            for s in raw_cfg.get("inference_servers", [])
-        ],
+        inference_servers=inference_servers,
     )
     update_model = mp.Event()
 
@@ -254,9 +270,6 @@ def main():
     for p in inf_processes:
         p.start()
 
-    # Generate seeds for each actor process
-    seeds = generate_random_seeds(cfg.player.params["seed"], cfg.num_procs + 1)
-
     # Generate per-process configs
     actor_configs = [
         replace(
@@ -284,18 +297,13 @@ def main():
     learner_cfg = LearnerConfig(
         seed=seeds[-1],
         working_dir=cfg.output,
-        batch_size=cfg.inference_servers[0].batch_size,
+        batch_size=raw_cfg["learner"]["batch_size"],
         buffer_size=raw_cfg["learner"]["buffer_size"],
         game_cfg=cfg.game,
         ckpt_path=cfg.inference_servers[0].ckpt_dir,
         save_interval=raw_cfg["learner"]["save_interval"],
         update_model=update_model,
-        model_cfg=ModelConfig(
-            cfg.game.type_,
-            cfg.inference_servers[0].model_type,
-            seed=seeds[-1],
-            hypers=cfg.game.size,
-        ),
+        model_cfg=cfg.inference_servers[0].model_cfg,
         optimizer_cfg=OptimizerConfig(
             raw_cfg["learner"]["optimizer"]["name"],
             raw_cfg["learner"]["optimizer"]["kwargs"],

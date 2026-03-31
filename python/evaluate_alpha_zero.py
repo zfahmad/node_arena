@@ -2,8 +2,8 @@
 evaluate_alpha_zero.py
 Author: Zaheen Ahmad
 
-Plays games in parallel. The number of games played concurrently depend on the
-parameter, num_procs, in the config file.
+Evaluates AlphaZero against a reference agent (MCTS). Evaluates each checkpoint
+saved when training AlphaZero against a specified agent.
 
 List of games currently available:
     tic_tac_toe
@@ -39,6 +39,7 @@ from python.configs import (
     GameConfig,
     InferenceEndpoints,
     InferenceServerConfig,
+    ModelConfig,
     PlayerConfig,
 )
 from python.configure_logging import configure_logging
@@ -147,8 +148,8 @@ def run_inference(
     logging.info(f"[server {params.name}] Creating inference model.")
 
     game_module = importlib.import_module(f"python.models.{params.game_str}_nn")
-    Model = getattr(game_module, params.model_type)
-    model = Model(params.seed, params.dims)
+    Model = getattr(game_module, params.model_cfg.name)
+    model = Model(params.model_cfg.seed, **params.model_cfg.hypers)
 
     logging.info(f"[server {params.name}] Creating inference server")
     sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
@@ -244,7 +245,7 @@ def main():
     os.makedirs(os.path.join(output, "evaluation", "player_one"), exist_ok=True)
     os.makedirs(os.path.join(output, "evaluation", "player_two"), exist_ok=True)
     os.makedirs(os.path.join(output, "plots"), exist_ok=True)
-    #
+
     # Load config file
     logging.info(f"Loading config file: {arguments['<config-file>']}")
     try:
@@ -260,24 +261,34 @@ def main():
         for ckpt_path in os.listdir(os.path.join(output, "checkpoints"))
         if not ckpt_path.endswith((".DS_Store", "latest"))
     ]
-    num_base_seeds = len(ckpt_paths) * len(raw_cfg["num_samples"]) + 1
+    num_base_seeds = len(ckpt_paths) * len(raw_cfg["num_samples"])
     base_seeds_p1 = generate_random_seeds(
         raw_cfg["player"]["params"]["seed"], num_base_seeds
     )
     base_seeds_p2 = generate_random_seeds(
         raw_cfg["mcts"]["params"]["seed"], num_base_seeds
     )
+    inf_seeds = generate_random_seeds(raw_cfg["master_seed"], 2)
     seed_idx = 0
 
     for ckpt_dir in ckpt_paths:
-        print(ckpt_dir)
+        print()
         inference_servers = [
             InferenceServerConfig(
-                **s,
                 game_str=raw_cfg["game"]["type_"],
                 dims=raw_cfg["game"]["size"],
                 num_actors=raw_cfg["num_procs"],
-                ckpt_dir=ckpt_dir,
+                seed=inf_seeds[-1],
+                name=s["name"],
+                type_=s["type_"],
+                batch_size=s["batch_size"],
+                ckpt_dir=os.path.join(output, "checkpoints", ckpt_dir),
+                model_cfg=ModelConfig(
+                    type_=raw_cfg["game"]["type_"],
+                    name=s["model_cfg"]["name"],
+                    seed=inf_seeds[-2],
+                    hypers=s["model_cfg"]["hypers"],
+                ),
             )
             for s in raw_cfg.get("inference_servers", [])
         ]
@@ -315,7 +326,8 @@ def main():
                 )
 
                 evaluate_agent(cfg)
-            seed_idx += 1
+        seed_idx += 1
+
     plot_results(
         os.path.join(output, "evaluation/player_one"),
         raw_cfg["num_samples"],

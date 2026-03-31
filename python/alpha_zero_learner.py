@@ -2,6 +2,8 @@ import os
 from multiprocessing.synchronize import Event
 from pathlib import Path
 
+import jax
+import jax.numpy as jnp
 import flax.nnx as nnx
 import optax
 import orbax.checkpoint as ocp
@@ -64,7 +66,14 @@ class Learner:
 
     def __call__(self, batch: Batch):
         batch_states, batch_values, batch_masks, batch_policies = self.preprocess_batch(batch, self.dims)  # type: ignore
-        self.model, _ = self.train_step(
+        if self.mngr.should_save(self.step):
+            _, state = nnx.split(self.model)
+            self.mngr.save(self.step, {"state": state})
+            self.mngr.wait_until_finished()
+            self._update_latest_symlink(self.step)
+            self.update_model.set()
+
+        self.model, loss = self.train_step(
             self.model,
             self.optimizer,
             batch_states,
@@ -72,10 +81,5 @@ class Learner:
             batch_masks,
             batch_policies,
         )
-        if self.mngr.should_save(self.step):
-            _, state = nnx.split(self.model)
-            self.mngr.save(self.step, {"state": state})
-            self.mngr.wait_until_finished()
-            self._update_latest_symlink(self.step)
-            self.update_model.set()
+
         self.step += 1

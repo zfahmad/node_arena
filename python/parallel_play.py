@@ -37,6 +37,7 @@ import yaml
 from python.configs import (
     GameConfig,
     InferenceEndpoints,
+    ModelConfig,
     InferenceServerConfig,
     PlayerConfig,
 )
@@ -141,7 +142,7 @@ def run_inference(
     logging.info(f"[server {params.name}] Creating inference model.")
 
     game_module = importlib.import_module(f"python.models.{params.game_str}_nn")
-    Model = getattr(game_module, params.model_type)
+    Model = getattr(game_module, params.model_cfg.name)
     model = Model(params.seed, params.dims)
 
     logging.info(f"[server {params.name}] Creating inference server")
@@ -179,7 +180,29 @@ def main():
         logging.error(f"Config file does not exist: {arguments['<config-file>']}")
         sys.exit(1)
 
+    seeds = generate_random_seeds(raw_cfg["master_seed"], 2)
+
     # Build dataclass config
+    inference_servers = [
+        InferenceServerConfig(
+            game_str=raw_cfg["game"]["type_"],
+            dims=raw_cfg["game"]["size"],
+            num_actors=raw_cfg["num_procs"],
+            seed=seeds[0],
+            name=s["name"],
+            type_=s["type_"],
+            batch_size=s["batch_size"],
+            ckpt_dir=s["ckpt_dir"],
+            model_cfg=ModelConfig(
+                type_=raw_cfg["game"]["type_"],
+                name=s["model_cfg"]["name"],
+                seed=seeds[1],
+                hypers=s["model_cfg"]["hypers"],
+            ),
+        )
+        for s in raw_cfg.get("inference_servers", [])
+    ]
+
     cfg = Config(
         output=output,
         verbose=arguments.get("--verbose", False),
@@ -189,15 +212,7 @@ def main():
         game=GameConfig(**raw_cfg["game"]),
         player_one=PlayerConfig(**raw_cfg["player_one"]),
         player_two=PlayerConfig(**raw_cfg["player_two"]),
-        inference_servers=[
-            InferenceServerConfig(
-                **s,
-                game_str=raw_cfg["game"]["type_"],
-                dims=raw_cfg["game"]["size"],
-                num_actors=raw_cfg["num_procs"],
-            )
-            for s in raw_cfg.get("inference_servers", [])
-        ],
+        inference_servers=inference_servers,
     )
 
     # Setup factories

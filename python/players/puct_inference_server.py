@@ -108,9 +108,9 @@ class InferenceServer:
                     batch.append(self.create_padding(self.dims))
 
             input_batch = self.create_batch_input(jnp.array(batch), self.dims)
-            # values, policies = self.model(input_batch)
             values, policies = self.infer(self.params, input_batch)
 
+            # Place the values and policies into the appropriate response queues
             for index, actor_id in enumerate(actor_ids):
                 response_qs[actor_id].put(
                     (np.asarray(values[index]), np.asarray(policies[index]))

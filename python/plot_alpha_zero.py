@@ -24,7 +24,7 @@ def generate_plot(
     plt.rcParams.update(
         {"pgf.texsystem": "lualatex", "text.usetex": True, "font.family": "serif"}
     )
-    for i in range(len(iterations)):
+    for i in range(len(labels)):
         # plt.plot(iterations, data[i, :, 0])
         # plt.fill_between(
         #     iterations,
@@ -42,10 +42,11 @@ def generate_plot(
             label=f"{labels[i]} samples",
         )
 
+    plt.ticklabel_format(style="sci", axis="x", scilimits=(0,0))
     plt.axhline(y=0, lw=1, ls="--", c="black")
     plt.xticks(iterations)
     plt.xlabel("Training Iterations")
-    plt.ylim(-1, 1)
+    plt.ylim(-1.1, 1.1)
     plt.ylabel("Expected Utility (P1)")
     plt.grid(alpha=0.25)
     plt.legend(title="MCTS Samples")
@@ -60,9 +61,13 @@ def plot_results(working_dir: str, num_samples_list: list[int], output_path: str
         if os.path.isdir(os.path.join(working_dir, x))
     ]
     checkpoints.sort()
-    data = np.empty((len(num_samples_list), len(checkpoints), 2))
+    print(checkpoints)
+    print(num_samples_list)
+    data = np.empty((len(checkpoints), len(num_samples_list), 2))
+
     for idx_1, checkpoint in enumerate(checkpoints):
         checkpoint_path = os.path.join(working_dir, str(checkpoint))
+
         for idx_2, num_samples in enumerate(num_samples_list):
             log_files = [
                 log_file
@@ -72,6 +77,7 @@ def plot_results(working_dir: str, num_samples_list: list[int], output_path: str
                 if log_file.endswith(".json")
             ]
             outcomes = []
+
             for log_file in log_files:
                 file_path = os.path.join(checkpoint_path, str(num_samples), log_file)
                 outcomes.append(get_outcome(file_path))
@@ -79,4 +85,5 @@ def plot_results(working_dir: str, num_samples_list: list[int], output_path: str
             err = 1.96 * (np.std(outcomes) / np.sqrt(len(outcomes)))
 
             data[idx_1][idx_2] = np.array([mean, err])
+
     generate_plot(checkpoints, num_samples_list, data, output_path)

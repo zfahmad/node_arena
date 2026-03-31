@@ -5,7 +5,7 @@ Usage:
     train_unsupervised_learning.py [options] <config-file>
 
 Options:
-    -v --verbose             # Print to screen
+    -v --verbose                  # Print to screen
     -l FILE --logging=LOG_FILE    # Log program to file [default: ]
 """
 
@@ -14,8 +14,7 @@ import logging
 import os
 import sys
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Callable
 
 import jax.numpy as jnp
 import numpy as np
@@ -26,9 +25,10 @@ from jax import Array, jit
 from jax.typing import ArrayLike
 from orbax import checkpoint as ckp
 
+from python.configs import Batch, ModelConfig, OptimizerConfig, TrainingConfig
 from python.configure_logging import configure_logging
 from python.data_reader import DataReader
-from python.configs import ModelConfig, OptimizerConfig, Batch, TrainingConfig
+from python.utils.seed_gen import generate_random_seeds
 
 
 def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
@@ -41,12 +41,20 @@ def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
         batch_masks: Array,
         batch_policies: Array,
     ) -> Array:
-        predicted_values, output_policies = model(batch_inputs)
-        policies = output_policies * batch_masks
-        loss = jnp.mean(
-            optax.squared_error(predicted_values, batch_values)
-            + optax.softmax_cross_entropy(policies, batch_policies)
+        predicted_values, output_logits = model(batch_inputs)
+        masked_logits = output_logits + (1 - batch_masks) * (-1e9)
+        batch_policies = batch_policies / jnp.sum(batch_policies, axis=1, keepdims=True)
+        entropy = -jnp.sum(
+            nnx.softmax(output_logits) * nnx.log_softmax(output_logits),
+            axis=-1,
         )
+        value_loss = jnp.mean(optax.squared_error(predicted_values, batch_values))
+        policy_loss = jnp.mean(
+            optax.softmax_cross_entropy(masked_logits, batch_policies)
+        )
+        # TODO: Use command line arg for regularization
+        loss = value_loss + policy_loss - 1e-3 * jnp.mean(entropy)
+
         return loss
 
     grad_fn = nnx.value_and_grad(loss_fn)
@@ -66,6 +74,7 @@ def make_train_step(create_input_fn, dims: Sequence[int]) -> Callable:
         optimizer.update(model, grads)
         return model, loss
 
+    # NOTE: Should I jit compile?
     return train_step
 
 
@@ -80,17 +89,30 @@ def make_evaluation(create_input_fn, dims: Sequence[int]) -> Callable:
         batch_policies: Array,
     ) -> dict:
         batch_inputs = create_input_fn(batch_states, dims)
-        predicted_values, output_policies = model(batch_inputs)
-        policies = output_policies * batch_masks
-        loss = jnp.mean(
-            optax.squared_error(predicted_values, batch_values)
-            + optax.softmax_cross_entropy(policies, batch_policies)
+        predicted_values, output_logits = model(batch_inputs)
+        masked_logits = output_logits + (1 - batch_masks) * (-1e9)
+        batch_policies = batch_policies / jnp.sum(batch_policies, axis=1, keepdims=True)
+        value_loss = jnp.mean(optax.squared_error(predicted_values, batch_values))
+        policy_loss = jnp.mean(
+            optax.softmax_cross_entropy(masked_logits, batch_policies)
         )
+        loss = value_loss + policy_loss
         bins = jnp.array([-0.33, 0.33])
         predicted_outcomes = jnp.digitize(predicted_values, bins) - 1
-        prediction_acc = jnp.mean(predicted_outcomes == batch_values)
+        value_prediction_acc = jnp.mean(predicted_outcomes == batch_values)
+        action_selection = jnp.argmax(masked_logits, axis=1)
+        selection_acc = (
+            jnp.count_nonzero(
+                batch_policies[jnp.arange(batch_policies.shape[0]), action_selection]
+            )
+            / batch_policies.shape[0]
+        )
 
-        return {"loss": loss, "pred_acc": prediction_acc}
+        return {
+            "loss": loss,
+            "pred_acc": value_prediction_acc,
+            "sel_acc": selection_acc,
+        }
 
     return jit(evaluate_model)
 
@@ -106,7 +128,7 @@ def load_model(
     Model = getattr(model_module, cfg.name)
     create_input_fn = getattr(model_module, "create_batch_input")
     preprocess_batch = getattr(model_module, "preprocess_batch")
-    return Model(cfg.seed, cfg.hypers), create_input_fn, preprocess_batch
+    return Model(cfg.seed, **cfg.hypers), create_input_fn, preprocess_batch
 
 
 def main():
@@ -124,6 +146,8 @@ def main():
         logging.error(f"Config file does not exist: {args['<config-file>']}")
         sys.exit(1)
 
+    ss = generate_random_seeds(raw_cfg["master_seed"], 1)
+
     cfg = TrainingConfig(
         game=raw_cfg["training_config"]["game"],
         size=raw_cfg["training_config"]["size"],
@@ -138,8 +162,8 @@ def main():
         model_cfg=ModelConfig(
             raw_cfg["training_config"]["game"],
             raw_cfg["model_config"]["name"],
-            raw_cfg["model_config"]["seed"],
-            raw_cfg["training_config"]["size"],
+            ss[0],
+            raw_cfg["model_config"]["hypers"],
         ),
     )
 
@@ -174,9 +198,11 @@ def main():
         num_iterations = train_dr.size // cfg.batch_size
 
     logging.info("Begin training...")
+    iteration = 0
     for epoch in range(cfg.num_epochs):
         logging.info(f"Starting epoch: {epoch}")
         for step in range(num_iterations):
+
             batch: Batch = train_dr.get_next_batch()
             batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch, cfg.size)  # type: ignore
             model, _ = train_step(
@@ -190,14 +216,14 @@ def main():
 
             # Save model checkpoint
             _, state = nnx.split(model)
-            mngr.save(step, {"state": state})
+            mngr.save(iteration, {"state": state})
 
             # Evaluate accuracy of the model
             if not (step % cfg.eval_interval):
                 num_eval_batches = test_dr.size // cfg.batch_size
-                metrics_sum = {"loss": 0.0, "pred_acc": 0.0}
+                metrics_sum = {"loss": 0.0, "pred_acc": 0.0, "sel_acc": 0.0}
                 for _ in range(num_eval_batches):
-                    batch: Batch = train_dr.get_next_batch()
+                    batch: Batch = test_dr.get_next_batch()
                     batch_states, batch_values, batch_masks, batch_policies = preprocess_batch(batch, cfg.size)  # type: ignore
                     metrics = evaluate_model(
                         model, batch_states, batch_values, batch_masks, batch_policies
@@ -211,17 +237,21 @@ def main():
                 logging.info(
                     f"epoch: {epoch:3} step: {step:4} "
                     f"loss: {mean_metrics['loss']:.4f} "
-                    f"pred_acc: {mean_metrics['pred_acc']:.4f}"
+                    f"pred_acc: {mean_metrics['pred_acc']:.4f} "
+                    f"sel_acc: {mean_metrics['sel_acc']:.4f}"
                 )
                 if args["--verbose"]:
                     print(
                         f"epoch: {epoch:3} step: {step:4} "
                         f"loss: {mean_metrics['loss']:.4f} "
-                        f"pred_acc: {mean_metrics['pred_acc']:.4f}"
+                        f"pred_acc: {mean_metrics['pred_acc']:.4f} "
+                        f"sel_acc: {mean_metrics['sel_acc']:.4f}"
                     )
+            iteration += 1
 
         if args["--verbose"]:
             print(30 * "-")
+
     logging.info("Ending training.")
     mngr.wait_until_finished()
     logging.info("Checkpoint manager finished.")
