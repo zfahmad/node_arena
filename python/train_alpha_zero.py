@@ -14,6 +14,8 @@ Options:
     -v --verbose                # Print to stdout
     --resume                    # Restart self-play training [default: False]
     --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
+    --seed=s                    # Master seed for training
+    --learning-rate=r           # Learning rate for the optimizer
 """
 
 import importlib
@@ -210,7 +212,11 @@ def main():
         sys.exit(1)
 
     # Generate seeds for each actor process
-    seeds = generate_random_seeds(raw_cfg["master_seed"], raw_cfg["num_procs"] + 2)
+    if arguments["--seed"]:
+        master_seed = int(arguments["--seed"])
+    else:
+        master_seed = raw_cfg["master_seed"]
+    seeds = generate_random_seeds(master_seed, raw_cfg["num_procs"] + 2)
 
     # Build dataclass config
     inference_servers = [
@@ -293,6 +299,9 @@ def main():
         )
         for proc_id in range(cfg.num_procs)
     ]
+
+    if arguments["--learning-rate"]:
+        raw_cfg["learner"]["optimizer"]["kwargs"]["learning_rate"] = float(arguments["--learning-rate"])
 
     learner_cfg = LearnerConfig(
         seed=seeds[-1],
