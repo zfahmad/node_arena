@@ -1,0 +1,50 @@
+game:
+  type_: "connect_four"
+  params: []
+  size: [4, 4]
+  initial_state: ""
+
+master_seed: 0
+
+num_procs: 64
+
+player:
+  type_: "puct"
+  server: "s1"
+  params:
+    seed: 
+    num_samples: 16
+    gamma: 1.0
+    exploitation_threshold: 1
+    training: True
+    dirichlet_epsilon: 0.25
+    dirichlet_alpha: 0.03
+    tree_policy:
+      seed:
+      C: 1.0
+    final_policy:
+      seed:
+
+inference_servers: [{
+    name: "s1",
+    type_: "puct",
+    model_config: {
+      name: "ResNet",
+      hypers: {
+        dims: [3, 3],
+        num_blocks: 1,
+      }
+    },
+    ckpt_dir: "",
+    batch_size: 32,
+  }]
+
+learner:
+  batch_size: 32
+  buffer_size: 1000
+  save_interval: 1000
+  optimizer:
+    name: "sgd"
+    kwargs:
+      learning_rate: 0.001
+      momentum: 0.99

@@ -2,11 +2,29 @@ game:
   # type_: "tic_tac_toe"
   # size: [3, 3]
   type_: "connect_four"
+  params: []
   size: [4, 4]
   # type_: "tic_tac_toe"
   initial_state: ""
 
+master_seed: 0
 num_procs: 4
+games_per_proc: 100
+
+player_two:
+  type_: "mcts"
+  # model: "m1"
+  params:
+    seed: 0
+    gamma: 1.0
+    num_samples: 16
+    tree_policy:
+      type_: "ucb1"
+      C: 1.0
+    final_policy:
+      type_: "lcb"
+    eval_func:
+      type_: "random_rollout"
 
 player_one:
   type_: "mcts"
@@ -14,51 +32,48 @@ player_one:
   params:
     seed: 0
     gamma: 1.0
-    num_samples: 9216
+    num_samples: 128
     tree_policy:
       type_: "ucb1"
       C: 1.0
-      # seed: 1
     final_policy:
       type_: "lcb"
-      # seed: 1
     eval_func:
       type_: "random_rollout"
-      # seed: 2
 
 # player_two:
 #   type_: "random"
 #   params:
 #     seed: 4
-
-player_two:
-  type_: "puct"
-  server: "s1"
-  params:
-    seed: 0
-    num_samples: 16
-    gamma: 1.0
-    exploitation_threshold: 1
-    training: False
-    dirichlet_epsilon: 0.2
-    dirichlet_alpha: 0.1
-    tree_policy: 
-      # seed: 1 
-      C: 1.0
-    final_policy: 
-      seed:
+#
+# player_two:
+#   type_: "puct"
+#   server: "s1"
+#   params:
+#     seed: 0
+#     num_samples: 64
+#     gamma: 1.0
+#     exploitation_threshold: 7
+#     training: False
+#     dirichlet_epsilon: 0.2
+#     dirichlet_alpha: 0.1
+#     tree_policy: 
+#       # seed: 1 
+#       C: 1.0
+#     final_policy: 
+#       seed:
 
 inference_servers: [
-  {
-    name: "s1",
-    type_: "puct",
-    model_type: "CNN",
-    # ckpt_dir: "/Users/zaheen/Documents/node_arena/tic_tac_toe/checkpoints/60/",
-    # ckpt_dir: "",
-    ckpt_dir: "/Users/zaheen/Documents/node_arena/connect_four/checkpoints/200/",
-    batch_size: 4,
-    seed: 5,
-  }
+  # {
+  #   name: "s1",
+  #   type_: "puct",
+  #   model_type: "CNN",
+  #   # ckpt_dir: "/Users/zaheen/Documents/node_arena/tic_tac_toe/checkpoints/60/",
+  #   # ckpt_dir: "",
+  #   ckpt_dir: "/Users/zaheen/Documents/node_arena/connect_four/checkpoints/200/",
+  #   batch_size: 4,
+  #   seed: 5,
+  # }
 ]
 #   # {
 #   #   type_: "none2",

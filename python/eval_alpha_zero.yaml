@@ -1,0 +1,50 @@
+game:
+  # type_: "tic_tac_toe"
+  # size: [3, 3]
+  type_: "connect_four"
+  params: []
+  size: [4, 4]
+  # type_: "tic_tac_toe"
+  initial_state: ""
+
+num_procs: 64
+games_per_proc: 5
+
+player:
+  type_: "puct"
+  server: "s1"
+  params:
+    seed: 0
+    num_samples: 8
+    gamma: 1.0
+    exploitation_threshold: 1
+    training: False
+    dirichlet_epsilon: 0.2
+    dirichlet_alpha: 0.1
+    tree_policy:
+      seed:
+      C: 1.0
+    final_policy:
+      seed:
+
+num_samples: [4, 16, 32]
+mcts:
+  type_: "mcts"
+  params:
+    seed: 0
+    gamma: 1.0
+    tree_policy:
+      type_: "ucb1"
+      C: 1.0
+    final_policy:
+      type_: "lcb"
+    eval_func:
+      type_: "random_rollout"
+
+inference_servers: [{
+    name: "s1",
+    type_: "puct",
+    model_type: "CNN",
+    batch_size: 32,
+    seed: 5,
+  }]

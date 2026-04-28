@@ -1,0 +1,4 @@
+#!/bin/bash
+
+pyenv activate jax
+export PYTHONPATH=~/projects/node_arena

@@ -1,141 +1,300 @@
 #include <cassert>
-#include <games/othello/othello.hpp>
-#include <games/othello/othello_state.hpp>
+#include <constants.hpp>
+#include <games/chinese_checkers/chinese_checkers.hpp>
+#include <games/chinese_checkers/chinese_checkers_state.hpp>
+#include <iostream>
 
-// TODO: Currently Othello does not check for validity of states. It is not
-// needed for AlphaZero since AlphaZero cannot traverse to illegal states.
+// TODO: Currently ChineseCheckers does not check for validity of states. It is
+// not needed for AlphaZero since AlphaZero cannot traverse to illegal states.
 // However, this functionality needs to be added for solving games.
-// TODO: Implement undo actions for Othello
+// TODO: Implement undo actions for ChineseCheckers
 
-using Player = typename OthelloState::Player;
-using BBType = typename OthelloState::BBType;
+using Player = typename ChineseCheckersState::Player;
+using BBType = typename ChineseCheckersState::BBType;
 
-Othello::Othello() = default;
+BBType generate_destinations_mask(int num_rows, int num_cols) {
+    // Masks out non-valid destinations for a given board size.
+    BBType mask = ~0ULL;
+    BBType empty = (1 << num_cols) - 1;
+    empty = empty << 9;
+    for (int i = 0; i < num_rows; i++) {
+        mask = mask ^ empty;
+        empty = empty << 8;
+    }
+    return mask;
+}
 
-void Othello::reset(StateType &state) {
+BBType generate_initial_configuration(int num_pieces) {
+    BBType initial = 0ULL;
+    int i = 0;
+
+    do {
+        initial += 1ULL << STARTING_LOCATIONS[num_pieces - 1][i];
+        i++;
+    } while ((STARTING_LOCATIONS[num_pieces - 1][i] != -1) && (i < 11));
+
+    return initial;
+}
+
+std::vector<std::vector<int>> get_initial_piece_locs(int num_rows,
+                                                     int num_pieces) {
+    std::vector<std::vector<int>> locations;
+
+    std::vector<int> player_locations;
+    int i = 0;
+    do {
+        player_locations.push_back(STARTING_LOCATIONS[num_pieces - 1][i]);
+        i++;
+    } while ((STARTING_LOCATIONS[num_pieces - 1][i] != -1) && (i < 10));
+    locations.push_back(player_locations);
+    player_locations.clear();
+
+    i = 0;
+    int offset = 6 - num_rows;
+    int final_bit = 63 - (offset * 9);
+
+    do {
+        player_locations.push_back(final_bit -
+                                   STARTING_LOCATIONS[num_pieces - 1][i]);
+        i++;
+    } while ((STARTING_LOCATIONS[num_pieces - 1][i] != -1) && (i < 10));
+    locations.push_back(player_locations);
+
+    return locations;
+}
+
+BBType generate_empties_mask(int num_rows, int num_cols, int num_pieces) {
+    // Masks out non-valid empty locations for a given size.
+    // Depending on the dimensions and the number of pieces, players may use
+    // other goal regions for intermediary hops.
+    BBType mask = ~0ULL;
+    BBType empty = (1 << num_cols) - 1;
+    empty = empty << 9;
+    for (int i = 0; i < num_rows; i++) {
+        mask = mask ^ empty;
+        empty = empty << 8;
+    }
+
+    // Check if board size and number of pieces allow for empty goal spaces.
+    if ((num_rows == 5) && (num_pieces < 4)) {
+        BBType outside = (1ULL << 4) + (1ULL << 5) + (1ULL << 14) +
+                         (1ULL << 22) + (1ULL << 32) + (1ULL << 40) +
+                         (1ULL << 49) + (1ULL << 50);
+        mask = mask ^ outside;
+    }
+    return mask;
+}
+
+ChineseCheckers::ChineseCheckers(int num_rows, int num_cols, int num_pieces) {
+    this->num_rows_ = num_rows;
+    this->num_cols_ = num_cols;
+    this->num_pieces_ = num_pieces;
+    this->destinations_mask = generate_destinations_mask(num_rows, num_cols);
+    this->empties_mask = generate_empties_mask(num_rows, num_cols, num_pieces);
+}
+
+void ChineseCheckers::reset(StateType &state) {
     // Create an empty board and add initial configuration of the 4 player
     // pieces.
+    // NOTE: This is for 64-bit integers only
     BBType bb_1 = 0ULL;
     BBType bb_2 = 0ULL;
-    BBType bit = 1ULL;
+    BBType bit = 1ULL << 9;
+    BBType back_bit = 1ULL << 54;
 
-    // This next snippet moves to the center four spots and places pieces.
-    bit = (bit << (((state.get_num_rows() / 2) - 1) * 8));
-    bit = (bit << ((state.get_num_cols() / 2) - 1));
-    bb_2 = bb_2 | bit;
-    bit = bit << 1;
-    bb_1 = bb_1 | bit;
-    bit = (bit << 8);
-    bb_2 = bb_2 | bit;
-    bit = bit >> 1;
-    bb_1 = bb_1 | bit;
+    // Lookup initial setup for player one.
+    // bb_1 = SETUPS[state.get_num_pieces() - 1];
+    bb_1 = generate_initial_configuration(state.get_num_pieces());
+
+    // Mirror bits for player two.
+    for (int i = 0; i < state.get_num_rows(); i++) {
+        for (int j = 0; j < state.get_num_cols(); j++) {
+            if (bb_1 & bit) {
+                bb_2 = bb_2 | back_bit;
+            }
+            bit = bit << 1;
+            back_bit = back_bit >> 1;
+        }
+        bit = bit << (8 - state.get_num_cols());
+        back_bit = back_bit >> (8 - state.get_num_cols());
+    }
+    state.piece_locations =
+        get_initial_piece_locs(state.get_num_rows(), state.get_num_pieces());
 
     StateType::BoardType board = StateType::BoardType({bb_1, bb_2});
     state.set_board(board);
     state.set_player(Player::One);
 }
 
-BBType shift_and_mask(BBType bb, int dir) {
-    // Shifts the board bb in the direction indexed by dir.
-    // Then masks the bits so as to prevent wraparounds causing consecutive
-    // pieces.
-    // dir < 3 are board shifts to the right.
-    // dir > 3 are board shifts to the left.
-    if (dir > 3)
-        return (bb >> SHIFTS[dir]) & SHIFT_MASKS[dir];
-    else
-        return (bb << SHIFTS[dir]) & SHIFT_MASKS[dir];
-}
+void ChineseCheckers::print_mask(BBType mask) {
+    int shift;
+    BBType start = 1;
+    BBType bit = 1ULL;
 
-std::vector<Othello::ActionType>
-Othello::get_actions(const StateType &state) const {
-    // Returns a vector of columns with empty space i.e., enough space to add a
-    // piece.
-    std::vector<Othello::ActionType> actions;
-    BBType bit = 0ULL;
-    BBType bb_moves = 0ULL;
-    BBType empty_cells =
-        ~(state.get_board()[Player::One] | state.get_board()[Player::Two]);
-
-    // Dumb7Fill flood algorithm to find legal moves in each of the eight
-    // possible directions.
-    // https://www.chessprogramming.org/Dumb7Fill
+    shift = 8;
     for (int i = 0; i < 8; i++) {
-        bit = shift_and_mask(state.get_board()[state.get_player()], i) &
-              state.get_board()[state.get_opponent()];
-        for (int j = 0; j < 5; j++) {
-            bit |= shift_and_mask(bit, i) &
-                   state.get_board()[state.get_opponent()];
+        for (int j = 0; j < 8 - i; j++)
+            std::cout << " ";
+        bit = start;
+        for (int j = 0; j <= i; j++) {
+            if (mask & bit)
+                std::cout << BLUE << FILL_CIRCLE << " " << RESET;
+            else
+                std::cout << CIRCLE << " ";
+            bit = bit >> 7;
         }
-        bb_moves |= shift_and_mask(bit, i) & empty_cells;
+        start = start << shift;
+        std::cout << "\n";
     }
 
-    // Mask the padded regions of the board when the dimensions are smaller than
-    // 8 squares. This prevents moves adding pieces outside the board when the
-    // board is small otherwise edge pieces may lead to illegal moves.
-    BBType PAD_MASK = 255ULL >> (8 - state.get_num_cols());
-    for (int i = 0; i < state.get_num_rows(); i++)
-        PAD_MASK |= PAD_MASK << 8;
-    bb_moves &= PAD_MASK;
+    start = 1ULL << 57;
+    shift = 1;
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j <= i + 1; j++)
+            std::cout << " ";
+        bit = start;
+        for (int j = 7; j > i; j--) {
+            if (mask & bit)
+                std::cout << BLUE << FILL_CIRCLE << " " << RESET;
+            else
+                std::cout << CIRCLE << " ";
+            bit = bit >> 7;
+        }
+        start = start << shift;
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
+}
 
-    bit = 1ULL;
-    for (int i = 0; i < state.get_num_rows() * state.get_num_cols(); i++) {
-        if (bit & bb_moves)
-            actions.push_back(i);
-        bit = (bit << 1);
+BBType shift(BBType source, int dir) {
+    if (dir < 3)
+        source = source >> STEP_SHIFTS[dir];
+    else
+        source = source << STEP_SHIFTS[dir];
+    return source;
+}
+
+BBType ChineseCheckers::get_steps(const StateType::BoardType board,
+                                  int source) const {
+    BBType steps = 0;
+    BBType source_bit = 1ULL << source;
+    BBType occupied = board[Player::One] | board[Player::Two];
+
+    for (int i = 0; i < 6; i++) {
+        steps = steps | shift(source_bit, i);
+    }
+
+    steps = steps & ~(this->destinations_mask | occupied);
+
+    return steps;
+}
+
+BBType ChineseCheckers::is_hop(StateType::BoardType board, BBType source_bits,
+                               int dir) const {
+    BBType hop = 0;
+    BBType occupied = board[Player::One] | board[Player::Two];
+
+    hop = occupied & shift(source_bits, dir);
+    hop = shift(hop, dir) & ~(this->empties_mask | occupied);
+
+    return hop;
+}
+
+BBType ChineseCheckers::get_hops(StateType::BoardType board, int source) const {
+    BBType hops = 0;
+    BBType source_bit = 1;
+    source_bit = source_bit << source;
+    BBType new_hops = source_bit;
+    BBType occupied = board[Player::One] | board[Player::Two];
+
+    while (new_hops != hops) {
+        hops = new_hops;
+        for (int dir = 0; dir < 6; dir++) {
+            new_hops = new_hops | is_hop(board, hops, dir);
+        }
+    }
+    hops = hops & ~(this->destinations_mask | occupied);
+    return hops;
+}
+
+std::vector<ChineseCheckers::ActionType>
+ChineseCheckers::get_actions(const StateType &state) const {
+    std::vector<ChineseCheckers::ActionType> actions;
+    BBType bit = 0ULL;
+    std::vector<int> sources;
+    if (state.get_player() == Player::One)
+        sources = state.piece_locations[0];
+    else
+        sources = state.piece_locations[1];
+
+    for (int s : sources)
+        std::cout << s << " ";
+    std::cout << std::endl;
+
+    for (int s : sources) {
+        BBType steps, hops;
+        steps = get_steps(state.get_board(), s);
+        hops = get_hops(state.get_board(), s);
+
+        // Collate all step actions
+        bit = 1ULL;
+        for (int i = 0; i < sizeof(BBType) * 8; i++) {
+            if (bit & steps) {
+                ChineseCheckers::ActionType action = {s, i};
+                actions.push_back(action);
+            }
+            bit <<= 1;
+        }
+
+        // Collate all step actions
+        bit = 1ULL;
+        for (int i = 0; i < sizeof(BBType) * 8; i++) {
+            if (bit & hops) {
+                ChineseCheckers::ActionType action = {s, i};
+                actions.push_back(action);
+            }
+            bit <<= 1;
+        }
     }
 
     return actions;
 }
 
-bool Othello::has_actions(const StateType &state) {
+bool ChineseCheckers::has_actions(const StateType &state) {
     return get_actions(state).size() > 0;
 }
 
-// TODO: Add checks for both apply_action and undo_action to ensure actions are
-// valid.
-int Othello::apply_action(StateType &state, ActionType action) {
-    // Adds a new piece to the column denoted by action
+// // TODO: Add checks for both apply_action and undo_action to ensure
+// actions are
+// // valid.
+int ChineseCheckers::apply_action(StateType &state, ActionType action) {
+    // Validation checks:
+    // - is the action one for the current player?
+    // - does the source piece exist?
+    // - is the destination location available?
 
-    // Move piece to column
-    assert(((action > 0) ||
-            (action < state.get_num_rows() * state.get_num_cols())) &&
-           "Invalid action!");
+    BBType source, destination;
+    source = 1ULL << action[0];
+    destination = 1ULL << action[1];
 
-    BBType bit, bounding_disk;
-    BBType captured = 0ULL;
-    BBType new_disk = 1ULL << action;
-    int num_rows = state.get_num_rows();
-    int num_cols = state.get_num_cols() + 1;
-    StateType::BoardType board = state.get_board();
-    BBType joint_bb = board[Player::One] | board[Player::Two];
-    assert(~(bit & joint_bb) && "Trying to place pieec in occupied cell.");
+    ChineseCheckersState::BoardType board = state.get_board();
+    board[state.get_player()] ^= source;
+    board[state.get_player()] |= destination;
 
-    board[state.get_player()] |= new_disk;
-    for (int i = 0; i < 8; i++) {
-        bit = shift_and_mask(new_disk, i) & board[state.get_opponent()];
-        for (int j = 5; j < 5; j++) {
-            bit = shift_and_mask(bit, i) & board[state.get_opponent()];
-        }
-        bounding_disk = shift_and_mask(bit, i) & board[state.get_player()];
-        captured |= (bounding_disk ? bit : 0);
-    }
-
-    board[state.get_player()] ^= captured;
-    board[state.get_opponent()] ^= captured;
     state.set_board(board);
 
     return 0;
 }
+//
+// int ChineseCheckers::undo_action(StateType &state, ActionType action) {
+//     // WARN: Undo is not implemented yet -- not necessary for AlphaZero
+//     but may
+//     // be for solving
+//     return 0;
+// }
 
-int Othello::undo_action(StateType &state, ActionType action) {
-    // WARN: Undo is not implemented yet -- not necessary for AlphaZero but may
-    // be for solving
-    return 0;
-}
-
-Othello::StateType Othello::get_next_state(const StateType &state,
-                                           ActionType action) {
+ChineseCheckers::StateType
+ChineseCheckers::get_next_state(const StateType &state, ActionType action) {
     StateType next_state = state;
     apply_action(next_state, action);
     if (state.get_player() == Player::One)
@@ -145,60 +304,60 @@ Othello::StateType Othello::get_next_state(const StateType &state,
     return next_state;
 }
 
-bool Othello::is_winner(const StateType &state, Player player) {
-    // Checks if the state is a win for the player passed as an argument
-
-    // Check if state is terminal
-    if (is_terminal(state))
-        return false;
-
-    Player opponent = ((player == Player::One) ? Player::Two : Player::One);
-
-    StateType::BoardType board = state.get_board();
-    return state.num_pieces(board[player]) > state.num_pieces(board[opponent]);
+// bool ChineseCheckers::is_winner(const StateType &state, Player player) {
+//     // Checks if the state is a win for the player passed as an argument
+//
+//     // Check if state is terminal
+//     if (is_terminal(state))
+//         return false;
+//
+//     Player opponent = ((player == Player::One) ? Player::Two :
+//     Player::One);
+//
+//     StateType::BoardType board = state.get_board();
+//     return state.num_pieces(board[player]) >
+//     state.num_pieces(board[opponent]);
+// }
+//
+bool ChineseCheckers::is_draw(const StateType &state) {
+    // Draws occur when states are repeated. A state in isolation cannot be a
+    // draw.
+    // Check for draws through the use of the solver.
+    return false;
 }
 
-bool Othello::is_draw(const StateType &state) {
-    // Check if the state is a draw for both players.
-    // Draw occurs when the board is filled and there is neither player wins.
-
-    // Check if state is terminal
-    if (is_terminal(state))
-        return false;
-
-    StateType::BoardType board = state.get_board();
-    return state.num_pieces(board[state.get_player()]) ==
-           state.num_pieces(board[state.get_opponent()]);
-}
-
-bool Othello::is_terminal(const StateType &state) {
-    // Terminal states in Othello are states in which neither player has an
-    // action. This occurs when the board is full or when neither player can
-    // place a piece such that it flips opponent tokens.
-    StateType tmp_state = state;
-    tmp_state.set_player(state.get_opponent());
-    bool player_actions = has_actions(state);
-    bool opponent_actions = has_actions(tmp_state);
-    if (!player_actions && !opponent_actions)
-        return true;
-    else
-        return false;
-}
-
-Othello::Outcomes Othello::get_outcome(const StateType &state) {
-    if (is_winner(state, Player::One))
-        return Outcomes::P1Win;
-    if (is_winner(state, Player::Two))
-        return Outcomes::P2Win;
-    if (is_draw(state))
-        return Outcomes::Draw;
-    return Outcomes::NonTerminal;
-}
-
-std::vector<std::uint8_t> Othello::legal_moves_mask(const StateType &state) {
-    std::vector<std::uint8_t> mask(state.get_num_rows() * state.get_num_cols());
-    std::vector<ActionType> actions = get_actions(state);
-    for (int action : actions)
-        mask[action] = 1;
-    return mask;
-}
+// bool ChineseCheckers::is_terminal(const StateType &state) {
+//     // Terminal states in ChineseCheckers are states in which neither
+//     player has an
+//     // action. This occurs when the board is full or when neither player
+//     can
+//     // place a piece such that it flips opponent tokens.
+//     StateType tmp_state = state;
+//     tmp_state.set_player(state.get_opponent());
+//     bool player_actions = has_actions(state);
+//     bool opponent_actions = has_actions(tmp_state);
+//     if (!player_actions && !opponent_actions)
+//         return true;
+//     else
+//         return false;
+// }
+//
+// ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType
+// &state) {
+//     if (is_winner(state, Player::One))
+//         return Outcomes::P1Win;
+//     if (is_winner(state, Player::Two))
+//         return Outcomes::P2Win;
+//     if (is_draw(state))
+//         return Outcomes::Draw;
+//     return Outcomes::NonTerminal;
+// }
+//
+// std::vector<std::uint8_t> ChineseCheckers::legal_moves_mask(const
+// StateType &state) {
+//     std::vector<std::uint8_t> mask(state.get_num_rows() *
+//     state.get_num_cols()); std::vector<ActionType> actions =
+//     get_actions(state); for (int action : actions)
+//         mask[action] = 1;
+//     return mask;
+// }

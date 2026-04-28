@@ -1,8 +1,8 @@
 #ifndef CHINESE_CHECKERS_STATE_HPP
 #define CHINESE_CHECKERS_STATE_HPP
 
-#include <player.hpp>
 #include <cstdint>
+#include <player.hpp>
 #include <state.hpp>
 #include <vector>
 
@@ -12,7 +12,8 @@ public:
     using BBType = std::uint64_t;
     using BoardType = PlayerIndexed<BBType, Player>;
 
-    ChineseCheckersState(int num_rows = 8, int num_cols = 8);
+    ChineseCheckersState(int num_rows = 6, int num_cols = 6,
+                         int num_pieces = 10);
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
@@ -22,16 +23,21 @@ public:
     std::string to_string();
     void from_string(const std::string state_str);
     Player get_player() const { return player_; };
-    Player get_opponent() const { return (player_ == Player::One) ? Player::Two : Player::One; }
+    Player get_opponent() const {
+        return (player_ == Player::One) ? Player::Two : Player::One;
+    }
     void set_player(Player player) { player_ = player; }
     int get_num_cols() const { return num_cols_; }
     int get_num_rows() const { return num_rows_; }
+    int get_num_pieces() const { return num_pieces_; }
     int num_pieces(BBType board) const;
+    std::vector<std::vector<int>> piece_locations;
 
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;
     int num_rows_, num_cols_;
+    int num_pieces_;
 };
 
 static_assert(State<ChineseCheckersState>);

@@ -1,0 +1,16 @@
+game: "tic_tac_toe"
+size: [3, 3]
+policy_type: "dense"
+batch_size: 64
+dataset_path: "/Users/zaheen/projects/node_arena/python/ttt_oh_dataset.h5"
+ckpt_path: "/Users/zaheen/Documents/node_arena/supervised_learning/tic_tac_toe/checkpoints/2750"
+master_seed: 0
+optimizer_config:
+  name: "adam"
+  kwargs:
+    learning_rate: 0.01
+model_config:
+  name: "CNN"
+  hypers:
+    dims: [3, 3]
+    # num_blocks: 0
