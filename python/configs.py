@@ -75,6 +75,7 @@ class LearnerConfig:
     game_cfg: GameConfig
     model_cfg: ModelConfig
     optimizer_cfg: OptimizerConfig
+    archive_dir: str
 
 
 @dataclass

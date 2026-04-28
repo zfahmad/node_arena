@@ -161,6 +161,7 @@ def run_learner(params: LearnerConfig):
         data_dir=params.working_dir,
         batch_size=params.batch_size,
         buffer_size=params.buffer_size,
+        archive_dir=params.archive_dir,
     )
     rb.start_indexing_thread()
 
@@ -317,6 +318,7 @@ def main():
             raw_cfg["learner"]["optimizer"]["name"],
             raw_cfg["learner"]["optimizer"]["kwargs"],
         ),
+        archive_dir=raw_cfg["learner"]["archive_dir"],
     )
 
     learner_process = Process(target=run_learner, args=(learner_cfg,))

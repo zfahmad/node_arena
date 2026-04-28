@@ -27,6 +27,7 @@ class ReplayBuffer:
         data_dir: str,
         batch_size: int,
         buffer_size: int,
+        archive_dir: str | None,
     ) -> None:
         self.rand = rnd.default_rng(seed)
         self.data_dir = data_dir
@@ -37,7 +38,9 @@ class ReplayBuffer:
         self._lock = threading.Lock()
 
         self.self_play_dir = os.path.join(self.data_dir, "self_play")
-        self.archive_dir = os.path.join(self.data_dir, "archive")
+        if archive_dir is None:
+            archive_dir = os.path.join(self.data_dir, "archive")
+        self.archive_dir = archive_dir
 
         os.makedirs(self.self_play_dir, exist_ok=True)
         os.makedirs(self.archive_dir, exist_ok=True)
