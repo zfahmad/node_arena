@@ -121,8 +121,8 @@ void ChineseCheckers::reset(StateType &state) {
     state.piece_locations =
         get_initial_piece_locs(state.get_num_rows(), state.get_num_pieces());
 
-    StateType::BoardType board = StateType::BoardType({bb_1, bb_2});
-    state.set_board(board);
+    initial_board = StateType::BoardType({bb_1, bb_2});
+    state.set_board(initial_board);
     state.set_player(Player::One);
 }
 
@@ -304,21 +304,24 @@ ChineseCheckers::get_next_state(const StateType &state, ActionType action) {
     return next_state;
 }
 
-// bool ChineseCheckers::is_winner(const StateType &state, Player player) {
-//     // Checks if the state is a win for the player passed as an argument
-//
-//     // Check if state is terminal
-//     if (is_terminal(state))
-//         return false;
-//
-//     Player opponent = ((player == Player::One) ? Player::Two :
-//     Player::One);
-//
-//     StateType::BoardType board = state.get_board();
-//     return state.num_pieces(board[player]) >
-//     state.num_pieces(board[opponent]);
-// }
-//
+bool ChineseCheckers::is_winner(const StateType &state, Player player) {
+    // Checks if the state is a win for the player passed as an argument
+
+    Player opponent = ((player == Player::One) ? Player::Two : Player::One);
+
+    // Is goal filled with opponent pieces?
+    if (state.get_board()[opponent] != initial_board[opponent]) {
+        BBType joint_board =
+            state.get_board()[Player::One] | state.get_board()[Player::Two];
+        // Is goal filled and at least one piece belongs to player?
+        if (joint_board == initial_board[opponent])
+            return true;
+        else
+            return false;
+    } else
+        return false;
+}
+
 bool ChineseCheckers::is_draw(const StateType &state) {
     // Draws occur when states are repeated. A state in isolation cannot be a
     // draw.
@@ -326,33 +329,24 @@ bool ChineseCheckers::is_draw(const StateType &state) {
     return false;
 }
 
-// bool ChineseCheckers::is_terminal(const StateType &state) {
-//     // Terminal states in ChineseCheckers are states in which neither
-//     player has an
-//     // action. This occurs when the board is full or when neither player
-//     can
-//     // place a piece such that it flips opponent tokens.
-//     StateType tmp_state = state;
-//     tmp_state.set_player(state.get_opponent());
-//     bool player_actions = has_actions(state);
-//     bool opponent_actions = has_actions(tmp_state);
-//     if (!player_actions && !opponent_actions)
-//         return true;
-//     else
-//         return false;
-// }
-//
-// ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType
-// &state) {
-//     if (is_winner(state, Player::One))
-//         return Outcomes::P1Win;
-//     if (is_winner(state, Player::Two))
-//         return Outcomes::P2Win;
-//     if (is_draw(state))
-//         return Outcomes::Draw;
-//     return Outcomes::NonTerminal;
-// }
-//
+bool ChineseCheckers::is_terminal(const StateType &state) {
+    if (is_winner(state, Player::One))
+        return true;
+    else if (is_winner(state, Player::Two))
+        return true;
+    else
+        return false;
+}
+
+ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType
+&state) {
+    if (is_winner(state, Player::One))
+        return Outcomes::P1Win;
+    if (is_winner(state, Player::Two))
+        return Outcomes::P2Win;
+    return Outcomes::NonTerminal;
+}
+
 // std::vector<std::uint8_t> ChineseCheckers::legal_moves_mask(const
 // StateType &state) {
 //     std::vector<std::uint8_t> mask(state.get_num_rows() *

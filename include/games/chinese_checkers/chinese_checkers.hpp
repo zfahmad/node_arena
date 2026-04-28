@@ -83,6 +83,7 @@ public:
     StateType::BBType is_hop(StateType::BoardType board,
                              ChineseCheckersState::BBType source_bits, int dir) const;
     StateType::BBType get_hops(StateType::BoardType board, int source) const;
+    StateType::BoardType initial_board;
     StateType::BBType destinations_mask;
     StateType::BBType empties_mask;
 
