@@ -43,6 +43,12 @@ class InferenceServerConfig:
 
 
 @dataclass
+class OptimizerConfig:
+    name: str
+    kwargs: dict
+
+
+@dataclass
 class TrainingConfig:
     game: str
     size: list[int]
@@ -55,12 +61,6 @@ class TrainingConfig:
     num_epochs: int = 1
     batch_size: int = 32
     ckpt_path: str = "./"
-
-
-@dataclass
-class OptimizerConfig:
-    name: str
-    kwargs: dict
 
 
 @dataclass
