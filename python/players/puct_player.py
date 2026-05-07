@@ -116,6 +116,7 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         if not mask.any():
             node.priors = np.zeros_like(policy)
             return value
+        policy = game.decode_policy(node.state, policy)
         masked_policy = np.where(mask, policy, -np.inf)
         node.priors = softmax(masked_policy)
         return value

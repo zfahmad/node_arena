@@ -118,3 +118,8 @@ std::vector<std::uint8_t> TicTacToe::legal_moves_mask(const StateType &state) {
         mask[action] = 1;
     return mask;
 }
+
+std::vector<std::uint8_t> TicTacToe::decode_policy(const StateType &state,
+                                        std::vector<std::uint8_t> policy) {
+    return policy;
+}

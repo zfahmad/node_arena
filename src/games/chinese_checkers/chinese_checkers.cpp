@@ -379,8 +379,15 @@ ChineseCheckers::legal_moves_mask(const StateType &state) {
     std::vector<ActionType> actions = get_actions(state);
     for (auto action : actions)
         mask[action] = 1;
-    for (int i : mask)
-        std::cout << i << " ";
-    std::cout << std::endl;
     return mask;
+}
+
+std::vector<std::uint8_t>
+ChineseCheckers::decode_policy(const StateType &state,
+                               std::vector<std::uint8_t> policy) {
+    if (state.get_player() == Player::Two) {
+        std::reverse(policy.begin(), policy.end());
+        return policy;
+    } else
+        return policy;
 }

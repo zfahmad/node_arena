@@ -37,6 +37,7 @@ public:
     bool is_terminal(const StateType &state);
     Outcomes get_outcome(const StateType &state);
     std::vector<std::uint8_t> legal_moves_mask(const StateType &state);
+    std::vector<std::uint8_t> decode_policy(const StateType &state, std::vector<std::uint8_t> policy);
 };
 
 static_assert(Game<Othello>);

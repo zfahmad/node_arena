@@ -58,16 +58,42 @@ int main(int argc, char **argv) {
         std::cout << state.piece_locations[1][i] << " ";
     std::cout << std::endl;
     state.print_board();
-    std::vector<ChineseCheckers::ActionType> actions = game.get_actions(state); 
+    std::vector<ChineseCheckers::ActionType> actions = game.get_actions(state);
 
     game.apply_action(state, actions[9]);
     state.print_board();
-    game.legal_moves_mask(state);
+    std::vector<std::vector<uint8_t>> array = state.to_array();
+    for (auto b : array) {
+        for (int i : b)
+            std::cout << i << " ";
+        std::cout << std::endl;
+    }
+    state.set_player(ChineseCheckersState::Player::Two);
+    array = state.to_array();
+    for (auto b : array) {
+        for (int i : b)
+            std::cout << i << " ";
+        std::cout << std::endl;
+    }
+    // std::vector<std::uint8_t> mask = game.legal_moves_mask(state);
+    // for (int i : mask)
+    //     std::cout << i << " ";
+    // std::cout << std::endl;
+    // mask = game.decode_policy(state, mask);
+    // for (int i : mask)
+    //     std::cout << i << " ";
+    // std::cout << std::endl;
+    // state.set_player(ChineseCheckersState::Player::Two);
+    // for (int i : mask)
+    //     std::cout << i << " ";
+    // std::cout << std::endl;
 
     // Checking for win test
     // game.reset(state);
     // state.print_board();
-    // ChineseCheckersState::BBType joint = state.get_board()[ChineseCheckersState::Player::One] | state.get_board()[ChineseCheckersState::Player::Two];
+    // ChineseCheckersState::BBType joint =
+    // state.get_board()[ChineseCheckersState::Player::One] |
+    // state.get_board()[ChineseCheckersState::Player::Two];
     // game.print_mask(joint);
     // std::cout << game.is_winner(state, ChineseCheckersState::Player::One)
     //           << "\n";

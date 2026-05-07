@@ -95,6 +95,8 @@ std::vector<std::vector<uint8_t>> ChineseCheckersState::to_array() {
             }
             bits = bits >> (8 - num_rows_);
         }
+        if (get_player() == Player::Two)
+            std::reverse(player_arr.begin(), player_arr.end());
         arrs.push_back(std::move(player_arr));
     }
     return arrs;

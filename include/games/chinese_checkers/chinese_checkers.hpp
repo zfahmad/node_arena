@@ -78,11 +78,16 @@ public:
     bool is_terminal(const StateType &state);
     Outcomes get_outcome(const StateType &state);
     std::vector<std::uint8_t> legal_moves_mask(const StateType &state);
+    std::vector<std::uint8_t> decode_policy(const StateType &state,
+                                            std::vector<std::uint8_t> policy);
     void print_mask(StateType::BBType mask);
     StateType::BBType get_steps(StateType::BoardType board, int source) const;
     StateType::BBType is_hop(StateType::BoardType board,
-                             ChineseCheckersState::BBType source_bits, int dir) const;
+                             ChineseCheckersState::BBType source_bits,
+                             int dir) const;
     StateType::BBType get_hops(StateType::BoardType board, int source) const;
+
+protected:
     StateType::BoardType initial_board;
     StateType::BBType destinations_mask;
     StateType::BBType empties_mask;

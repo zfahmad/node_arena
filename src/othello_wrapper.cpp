@@ -44,6 +44,7 @@ NB_MODULE(othello_wrapper, m) {
         .def("is_draw", &Othello::is_draw)
         .def("is_terminal", &Othello::is_terminal)
         .def("get_outcome", &Othello::get_outcome)
-        .def("legal_moves_mask", &Othello::legal_moves_mask);
+        .def("legal_moves_mask", &Othello::legal_moves_mask)
+        .def("decode_policy", &Othello::decode_policy);
     game_class.attr("Outcomes") = m.attr("Outcomes");
 }

@@ -43,6 +43,7 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .def("is_draw", &TicTacToe::is_draw)
         .def("is_terminal", &TicTacToe::is_terminal)
         .def("get_outcome", &TicTacToe::get_outcome)
-        .def("legal_moves_mask", &TicTacToe::legal_moves_mask);
+        .def("legal_moves_mask", &TicTacToe::legal_moves_mask)
+        .def("decode_policy", &TicTacToe::decode_policy);
     game_class.attr("Outcomes") = m.attr("Outcomes");
 }
