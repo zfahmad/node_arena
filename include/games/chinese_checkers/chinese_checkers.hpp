@@ -61,7 +61,7 @@ const ChineseCheckersState::BBType SETUPS[] = {
 class ChineseCheckers {
 public:
     enum class Outcomes { NonTerminal, P1Win, P2Win, Draw };
-    using ActionType = std::array<int, 2>;
+    using ActionType = int;
     using StateType = ChineseCheckersState;
 
     ChineseCheckers(int num_rows, int num_cols, int num_pieces);

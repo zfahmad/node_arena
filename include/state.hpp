@@ -19,8 +19,8 @@ concept State =
         { s.print_board() } -> std::same_as<void>;
         { s.get_board() } -> std::same_as<const typename S::BoardType &>;
         { s.set_board(board) } -> std::same_as<void>;
-        { s.to_compact() } -> std::same_as<std::vector<typename S::BBType>>;
-        { s.from_compact(compact) } -> std::same_as<void>;
+        // { s.to_compact() } -> std::same_as<std::vector<typename S::BBType>>;
+        // { s.from_compact(compact) } -> std::same_as<void>;
         {
             s.to_array()
         } -> std::same_as<std::vector<std::vector<std::uint8_t>>>;

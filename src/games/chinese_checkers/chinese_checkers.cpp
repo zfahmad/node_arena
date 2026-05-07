@@ -101,6 +101,7 @@ void ChineseCheckers::reset(StateType &state) {
     BBType bb_2 = 0ULL;
     BBType bit = 1ULL << 9;
     BBType back_bit = 1ULL << 54;
+    back_bit = back_bit >> ((6 - state.get_num_rows()) * 9);
 
     // Lookup initial setup for player one.
     // bb_1 = SETUPS[state.get_num_pieces() - 1];
@@ -217,6 +218,25 @@ BBType ChineseCheckers::get_hops(StateType::BoardType board, int source) const {
     return hops;
 }
 
+int location_to_index(int location, int num_rows) {
+    // Takes a bit location and returns its corresponding index in an array that
+    // would represent the board with dimension num_rows.
+
+    location -= 9;
+    int row = (location / 8);
+    int col = location % 8;
+    int index = (row * num_rows) + col;
+    return index;
+}
+
+int index_to_location(int index, int num_rows) {
+    int row = index / num_rows;
+    int col = index % num_rows;
+    int location = (row * 8) + col;
+    location += 9;
+    return location;
+}
+
 std::vector<ChineseCheckers::ActionType>
 ChineseCheckers::get_actions(const StateType &state) const {
     std::vector<ChineseCheckers::ActionType> actions;
@@ -227,20 +247,19 @@ ChineseCheckers::get_actions(const StateType &state) const {
     else
         sources = state.piece_locations[1];
 
-    for (int s : sources)
-        std::cout << s << " ";
-    std::cout << std::endl;
-
     for (int s : sources) {
         BBType steps, hops;
         steps = get_steps(state.get_board(), s);
         hops = get_hops(state.get_board(), s);
+        int base = location_to_index(s, num_rows_);
 
         // Collate all step actions
         bit = 1ULL;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & steps) {
-                ChineseCheckers::ActionType action = {s, i};
+                int offset = location_to_index(i, num_rows_);
+                ChineseCheckers::ActionType action =
+                    (base * num_rows_ * num_rows_) + offset;
                 actions.push_back(action);
             }
             bit <<= 1;
@@ -250,7 +269,9 @@ ChineseCheckers::get_actions(const StateType &state) const {
         bit = 1ULL;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & hops) {
-                ChineseCheckers::ActionType action = {s, i};
+                int offset = location_to_index(i, num_rows_);
+                ChineseCheckers::ActionType action =
+                    (base * num_rows_ * num_rows_) + offset;
                 actions.push_back(action);
             }
             bit <<= 1;
@@ -264,18 +285,22 @@ bool ChineseCheckers::has_actions(const StateType &state) {
     return get_actions(state).size() > 0;
 }
 
-// // TODO: Add checks for both apply_action and undo_action to ensure
-// actions are
-// // valid.
+// TODO: Add checks for both apply_action and undo_action to ensure actions are
+// valid.
 int ChineseCheckers::apply_action(StateType &state, ActionType action) {
     // Validation checks:
     // - is the action one for the current player?
     // - does the source piece exist?
     // - is the destination location available?
 
+    int base = action / (num_rows_ * num_rows_);
+    int offset = action % (num_rows_ * num_rows_);
+    int start = index_to_location(base, num_rows_);
+    int end = index_to_location(offset, num_rows_);
+
     BBType source, destination;
-    source = 1ULL << action[0];
-    destination = 1ULL << action[1];
+    source = 1ULL << start;
+    destination = 1ULL << end;
 
     ChineseCheckersState::BoardType board = state.get_board();
     board[state.get_player()] ^= source;
@@ -285,7 +310,7 @@ int ChineseCheckers::apply_action(StateType &state, ActionType action) {
 
     return 0;
 }
-//
+
 // int ChineseCheckers::undo_action(StateType &state, ActionType action) {
 //     // WARN: Undo is not implemented yet -- not necessary for AlphaZero
 //     but may
@@ -314,7 +339,9 @@ bool ChineseCheckers::is_winner(const StateType &state, Player player) {
         BBType joint_board =
             state.get_board()[Player::One] | state.get_board()[Player::Two];
         // Is goal filled and at least one piece belongs to player?
-        if (joint_board == initial_board[opponent])
+        // std::cout << joint_board << " " << initial_board[opponent] <<
+        // std::endl;
+        if ((joint_board & initial_board[opponent]) == initial_board[opponent])
             return true;
         else
             return false;
@@ -338,8 +365,7 @@ bool ChineseCheckers::is_terminal(const StateType &state) {
         return false;
 }
 
-ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType
-&state) {
+ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType &state) {
     if (is_winner(state, Player::One))
         return Outcomes::P1Win;
     if (is_winner(state, Player::Two))
@@ -347,11 +373,14 @@ ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType
     return Outcomes::NonTerminal;
 }
 
-// std::vector<std::uint8_t> ChineseCheckers::legal_moves_mask(const
-// StateType &state) {
-//     std::vector<std::uint8_t> mask(state.get_num_rows() *
-//     state.get_num_cols()); std::vector<ActionType> actions =
-//     get_actions(state); for (int action : actions)
-//         mask[action] = 1;
-//     return mask;
-// }
+std::vector<std::uint8_t>
+ChineseCheckers::legal_moves_mask(const StateType &state) {
+    std::vector<std::uint8_t> mask(std::pow(state.get_num_rows(), 4));
+    std::vector<ActionType> actions = get_actions(state);
+    for (auto action : actions)
+        mask[action] = 1;
+    for (int i : mask)
+        std::cout << i << " ";
+    std::cout << std::endl;
+    return mask;
+}
