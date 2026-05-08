@@ -127,6 +127,7 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
             edge = Edge(action)
             edge.prior = float(node.priors[action])
             node.edges.append(edge)
+        node.priors = np.array([])
 
     def inject_dirichlet_noise(self, node: Node) -> None:
         num_actions = len(node.edges)
