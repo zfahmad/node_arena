@@ -373,6 +373,10 @@ ChineseCheckers::Outcomes ChineseCheckers::get_outcome(const StateType &state) {
     return Outcomes::NonTerminal;
 }
 
+// ==============================
+// Functions for AlphaZero
+// ==============================
+
 std::vector<std::uint8_t>
 ChineseCheckers::legal_moves_mask(const StateType &state) {
     std::vector<std::uint8_t> mask(std::pow(state.get_num_rows(), 4));

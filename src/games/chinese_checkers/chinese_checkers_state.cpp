@@ -123,22 +123,22 @@ void ChineseCheckersState::set_board(BoardType board) {
     this->piece_locations = std::move(locations);
 }
 
-// std::vector<ChineseCheckersState::BBType> ChineseCheckersState::to_compact()
-// const {
-//     std::vector<BBType> board;
-//     board.reserve(2);
-//     board.push_back(board_[Player::One]);
-//     board.push_back(board_[Player::Two]);
-//     return board;
-// }
-//
-// void ChineseCheckersState::from_compact(std::vector<BBType> compact_board) {
-//     if ((compact_board[0] & compact_board[1]) != 0)
-//         throw std::logic_error("Bit collision");
-//     board_[Player::One] = compact_board[0];
-//     board_[Player::Two] = compact_board[1];
-// }
-//
+std::vector<ChineseCheckersState::BBType> ChineseCheckersState::to_compact()
+const {
+    std::vector<BBType> board;
+    board.reserve(2);
+    board.push_back(board_[Player::One]);
+    board.push_back(board_[Player::Two]);
+    return board;
+}
+
+void ChineseCheckersState::from_compact(std::vector<BBType> compact_board) {
+    if ((compact_board[0] & compact_board[1]) != 0)
+        throw std::logic_error("Bit collision");
+    board_[Player::One] = compact_board[0];
+    board_[Player::Two] = compact_board[1];
+}
+
 std::string ChineseCheckersState::to_string() {
     // Converts the state representation to a string.
     // First sixteen characters represent the board for player one in hex.

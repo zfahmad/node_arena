@@ -14,7 +14,7 @@ set(GAMES
     tic_tac_toe
     connect_four
     othello
-    # chinese_checkers
+    chinese_checkers
 )
 
 foreach(lib IN LISTS GAMES)

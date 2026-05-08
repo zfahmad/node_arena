@@ -64,7 +64,7 @@ public:
     using ActionType = int;
     using StateType = ChineseCheckersState;
 
-    ChineseCheckers(int num_rows, int num_cols, int num_pieces);
+    ChineseCheckers(int num_rows = 6, int num_cols = 6, int num_pieces = 6);
     std::string get_id() { return "chinese_checkers"; }
     std::vector<ActionType> get_actions(const StateType &state) const;
     bool has_actions(const StateType &state);

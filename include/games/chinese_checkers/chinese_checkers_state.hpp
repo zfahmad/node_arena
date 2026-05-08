@@ -13,7 +13,7 @@ public:
     using BoardType = PlayerIndexed<BBType, Player>;
 
     ChineseCheckersState(int num_rows = 6, int num_cols = 6,
-                         int num_pieces = 10);
+                         int num_pieces = 6);
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);
