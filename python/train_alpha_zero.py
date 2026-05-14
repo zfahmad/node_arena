@@ -243,7 +243,7 @@ def main():
     cfg = Config(
         output=output,
         verbose=arguments.get("--verbose", False),
-        max_turns=int(arguments.get("--max-turns", raw_cfg.get("max_turns", 100))),
+        max_turns=int(raw_cfg.get("max_turns", 100)),
         num_procs=raw_cfg["num_procs"],
         game=GameConfig(**raw_cfg["game"]),
         player=PlayerConfig(**raw_cfg["player"]),
@@ -266,7 +266,13 @@ def main():
         response_queues = [Queue() for _ in range(cfg.num_procs)]
         inf_process = Process(
             target=run_inference,
-            args=(request_queue, response_queues, server_cfg, cfg.output, update_model),
+            args=(
+                request_queue,
+                response_queues,
+                server_cfg,
+                os.path.join(cfg.output, "inf"),
+                update_model,
+            ),
         )
         inf_processes.append(inf_process)
         inference_endpoints[server_cfg.name] = InferenceEndpoints(
@@ -302,7 +308,9 @@ def main():
     ]
 
     if arguments["--learning-rate"]:
-        raw_cfg["learner"]["optimizer"]["kwargs"]["learning_rate"] = float(arguments["--learning-rate"])
+        raw_cfg["learner"]["optimizer"]["kwargs"]["learning_rate"] = float(
+            arguments["--learning-rate"]
+        )
 
     learner_cfg = LearnerConfig(
         seed=seeds[-1],

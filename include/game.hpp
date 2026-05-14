@@ -8,7 +8,7 @@
 template <typename G>
 concept Game =
     requires(G g, G::StateType state, G::ActionType action,
-             G::StateType::Player player, std::vector<std::uint8_t> policy,
+             G::StateType::Player player, std::vector<float> policy,
              G::Outcomes outcomes) {
         { g.get_id() } -> std::same_as<std::string>;
         {
@@ -25,7 +25,7 @@ concept Game =
         } -> std::same_as<std::vector<std::uint8_t>>;
         {
             g.decode_policy(state, policy)
-        } -> std::same_as<std::vector<std::uint8_t>>;
+        } -> std::same_as<std::vector<float>>;
     };
 
 #endif

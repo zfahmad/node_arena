@@ -386,9 +386,9 @@ ChineseCheckers::legal_moves_mask(const StateType &state) {
     return mask;
 }
 
-std::vector<std::uint8_t>
+std::vector<float>
 ChineseCheckers::decode_policy(const StateType &state,
-                               std::vector<std::uint8_t> policy) {
+                               std::vector<float> policy) {
     if (state.get_player() == Player::Two) {
         std::reverse(policy.begin(), policy.end());
         return policy;

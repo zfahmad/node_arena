@@ -191,7 +191,7 @@ ConnectFour::legal_moves_mask(const StateType &state) {
     return mask;
 }
 
-std::vector<std::uint8_t> ConnectFour::decode_policy(const StateType &state,
-                                        std::vector<std::uint8_t> policy) {
+std::vector<float> ConnectFour::decode_policy(const StateType &state,
+                                        std::vector<float> policy) {
     return policy;
 }

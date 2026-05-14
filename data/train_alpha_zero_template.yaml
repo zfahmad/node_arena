@@ -4,7 +4,9 @@ game:
   size: []
   initial_state: ""
 
+master_seed:
 num_procs:
+max_turns:
 
 player:
   type_: "puct"
@@ -26,18 +28,23 @@ player:
 inference_servers: [{
     name: "s1",
     type_: "puct",
-    model_type: "CNN",
     ckpt_dir: "",
     batch_size: 32,
-    seed: 5,
+    model_cfg: {
+        name: "ResNet",
+        hypers: {
+            dims: [],
+            num_blocks: 1
+        }
+    }
   }]
 
 learner:
-  batch_size: 
+  batch_size: 32
   buffer_size: 1000
   save_interval: 250
+  archive_dir:
   optimizer:
-    name: "sgd"
+    name: "adam"
     kwargs:
       learning_rate: 0.01
-      momentum: 0.99

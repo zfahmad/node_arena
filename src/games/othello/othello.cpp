@@ -175,11 +175,12 @@ bool Othello::is_terminal(const StateType &state) {
     // Terminal states in Othello are states in which neither player has an
     // action. This occurs when the board is full or when neither player can
     // place a piece such that it flips opponent tokens.
+    // NOTE: Game ends if acting player has no moves.
     StateType tmp_state = state;
     tmp_state.set_player(state.get_opponent());
     bool player_actions = has_actions(state);
     bool opponent_actions = has_actions(tmp_state);
-    if (!player_actions && !opponent_actions)
+    if (!player_actions)
         return true;
     else
         return false;
@@ -207,8 +208,8 @@ std::vector<std::uint8_t> Othello::legal_moves_mask(const StateType &state) {
     return mask;
 }
 
-std::vector<std::uint8_t>
+std::vector<float>
 Othello::decode_policy(const StateType &state,
-                       std::vector<std::uint8_t> policy) {
+                       std::vector<float> policy) {
     return policy;
 }

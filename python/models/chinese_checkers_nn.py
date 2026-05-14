@@ -84,26 +84,6 @@ def from_sparse_policy_numpy(
     return mask, policy
 
 
-class CNN(nnx.Module):
-    def __init__(self, seed: int, dims: list[int]):
-        rngs = nnx.Rngs(seed)
-        self.conv1 = nnx.Conv(2, 32, kernel_size=(3, 3), rngs=rngs, padding="SAME")
-        self.conv2 = nnx.Conv(32, 64, kernel_size=(3, 3), rngs=rngs, padding="SAME")
-        self.linear1 = nnx.Linear(1024, 128, rngs=rngs)
-        self.value_head = nnx.Linear(128, 1, rngs=rngs)
-        self.policy_len = dims[1]
-        self.policy_head = nnx.Linear(128, self.policy_len, rngs=rngs)
-
-    def __call__(self, x):
-        x = nnx.relu(self.conv1(x))
-        x = nnx.relu(self.conv2(x))
-        x = x.reshape(x.shape[0], -1)  # flatten
-        x = nnx.relu(self.linear1(x))
-        v = nnx.tanh(self.value_head(x))
-        p = self.policy_head(x)
-        return v, p
-
-
 class ResidualBlock(nnx.Module):
     def __init__(self, rngs: nnx.Rngs):
         self.conv1 = nnx.Conv(32, 32, kernel_size=(1, 1), rngs=rngs, padding="SAME")
@@ -144,27 +124,33 @@ class ValueHead(nnx.Module):
 
 class PolicyHead(nnx.Module):
     def __init__(self, in_features: int, policy_len: int, rngs: nnx.Rngs):
-        self.conv = nnx.Conv(8, 8, (3, 3), rngs=rngs, padding="SAME")
-        self.ln1 = nnx.LayerNorm(8, rngs=rngs)
-        self.linear1 = nnx.Linear(in_features, 128, rngs=rngs)
-        self.ln2 = nnx.LayerNorm(128, rngs=rngs)
-        self.linear2 = nnx.Linear(128, 64, rngs=rngs)
-        self.ln3 = nnx.LayerNorm(64, rngs=rngs)
-        self.linear3 = nnx.Linear(64, policy_len, rngs=rngs)
+        self.conv1 = nnx.Conv(8, in_features, (3, 3), rngs=rngs, padding="SAME")
+        self.ln1 = nnx.LayerNorm(in_features, rngs=rngs)
+        self.conv2 = nnx.Conv(
+            in_features, in_features, (3, 3), rngs=rngs, padding="SAME"
+        )
+        self.ln2 = nnx.LayerNorm(in_features, rngs=rngs)
+        self.conv3 = nnx.Conv(
+            in_features, policy_len, (3, 3), rngs=rngs, padding="SAME"
+        )
+        # self.ln1 = nnx.LayerNorm(in_features, rngs=rngs)
+        # self.linear1 = nnx.Linear(in_features, 128, rngs=rngs)
+        # self.ln2 = nnx.LayerNorm(128, rngs=rngs)
+        # self.linear2 = nnx.Linear(128, 64, rngs=rngs)
+        # self.ln3 = nnx.LayerNorm(64, rngs=rngs)
+        # self.linear3 = nnx.Linear(64, policy_len, rngs=rngs)
 
     def __call__(self, input_):
-        x = nnx.relu(self.ln1(self.conv(input_)))
-        x = x.reshape(x.shape[0], -1)
-        x = nnx.relu(self.ln2(self.linear1(x)))
-        x = nnx.relu(self.ln3(self.linear2(x)))
-        p = self.linear3(x)
+        x = nnx.relu(self.ln1(self.conv1(input_)))
+        x = nnx.relu(self.ln2(self.conv2(x)))
+        x = self.conv3(x)
+        p = x.reshape(x.shape[0], -1)
         return p
 
 
 class ResNet(nnx.Module):
     def __init__(self, seed: int, dims: list[int], num_blocks: int):
         rngs = nnx.Rngs(seed)
-        # self.policy_len = dims[0] * dims[1]
         self.conv1 = nnx.Conv(2, 32, kernel_size=(3, 3), rngs=rngs, padding="SAME")
         self.ln1 = nnx.LayerNorm(32, rngs=rngs)
         self.conv2 = nnx.Conv(32, 32, kernel_size=(3, 3), rngs=rngs, padding="SAME")
@@ -173,7 +159,7 @@ class ResNet(nnx.Module):
         self.ch_red = nnx.Conv(32, 8, kernel_size=(3, 3), rngs=rngs, padding="SAME")
         self.ln3 = nnx.LayerNorm(8, rngs=rngs)
         in_features = dims[0] * dims[1] * 8
-        self.policy_head = PolicyHead(in_features, dims[1], rngs)
+        self.policy_head = PolicyHead(in_features, (dims[0] * dims[1]), rngs)
         self.value_head = ValueHead(in_features, rngs)
 
     def __call__(self, input_):
