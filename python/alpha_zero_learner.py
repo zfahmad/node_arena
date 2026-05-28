@@ -20,8 +20,10 @@ class Learner:
         optimizer_cfg: OptimizerConfig,
         working_dir: str,
         ckpt_path: str,
+        num_iterations: int,
         save_interval: int,
         update_model: Event,
+        shutdown: Event,
     ) -> None:
         self.model, self.create_input_fn, self.preprocess_batch = load_model(model_cfg)
         self.graphdef, state = nnx.split(self.model)
@@ -53,6 +55,8 @@ class Learner:
         )
         self.train_step = make_train_step(self.create_input_fn, game_cfg.size)
         self.update_model = update_model
+        self.num_iterations = num_iterations
+        self.shutdown = shutdown
 
     def _update_latest_symlink(self, step: int):
         ckpt_dir = Path(self.working_dir)
@@ -72,6 +76,8 @@ class Learner:
             self.mngr.wait_until_finished()
             self._update_latest_symlink(self.step)
             self.update_model.set()
+        if self.step >= self.num_iterations:
+            self.shutdown.set()
 
         self.model, loss = self.train_step(
             self.model,

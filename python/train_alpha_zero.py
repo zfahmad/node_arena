@@ -81,6 +81,7 @@ def run_game(
     PF: PlayerFactory,
     cfg: Config,
     inference_endpoints: Dict[str, InferenceEndpoints],
+    shutdown: Event
 ):
     configure_logging(f"{cfg.output}/game_logs/game_{game_proc_id}.log")
     logging.info(f"[proc {game_proc_id}] Loading game.")
@@ -104,7 +105,7 @@ def run_game(
     player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
 
     # Keep playing games to generate data.
-    while True:
+    while not shutdown.is_set():
         ts = int(time.time() * 1e6)
         fname = f"game_{ts}_{uuid.uuid4().hex}"
         P = DataGenerator(cfg.max_turns, player)
@@ -171,10 +172,12 @@ def run_learner(params: LearnerConfig):
         params.optimizer_cfg,
         params.working_dir,
         params.ckpt_path,
+        params.num_intervals,
         params.save_interval,
         params.update_model,
+        params.shutdown,
     )
-    while True:
+    while not params.shutdown.is_set():
         batch = rb.get_next_batch()
         learner(batch)
 
@@ -248,8 +251,10 @@ def main():
         game=GameConfig(**raw_cfg["game"]),
         player=PlayerConfig(**raw_cfg["player"]),
         inference_servers=inference_servers,
+        num_intervals=int(raw_cfg.get("num_iterations"))
     )
     update_model = mp.Event()
+    shutdown = mp.Event()
 
     # Setup factories
     logging.info("Setting up player and game factories.")
@@ -302,6 +307,7 @@ def main():
                 player_factory,
                 actor_configs[proc_id],
                 inference_endpoints,
+                shutdown,
             ),
         )
         for proc_id in range(cfg.num_procs)
@@ -319,6 +325,7 @@ def main():
         buffer_size=raw_cfg["learner"]["buffer_size"],
         game_cfg=cfg.game,
         ckpt_path=cfg.inference_servers[0].ckpt_dir,
+        num_intervals=cfg.num_intervals,
         save_interval=raw_cfg["learner"]["save_interval"],
         update_model=update_model,
         model_cfg=cfg.inference_servers[0].model_cfg,
@@ -327,6 +334,7 @@ def main():
             raw_cfg["learner"]["optimizer"]["kwargs"],
         ),
         archive_dir=raw_cfg["learner"]["archive_dir"],
+        shutdown=shutdown,
     )
 
     learner_process = Process(target=run_learner, args=(learner_cfg,))

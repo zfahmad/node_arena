@@ -70,8 +70,10 @@ class LearnerConfig:
     batch_size: int
     buffer_size: int
     ckpt_path: str
+    num_intervals: int
     save_interval: int
     update_model: Event
+    shutdown: Event
     game_cfg: GameConfig
     model_cfg: ModelConfig
     optimizer_cfg: OptimizerConfig
@@ -86,6 +88,7 @@ class Config:
     num_procs: int
     game: GameConfig
     player: PlayerConfig
+    num_intervals: int
     inference_servers: list[InferenceServerConfig] = field(default_factory=list)
 
 
