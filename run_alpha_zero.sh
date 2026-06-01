@@ -14,7 +14,7 @@ fi
 
 
 # Setup modules
-module load python/3.13 cuda
+module load python/3.13
 
 
 # Setup Python environments
@@ -24,6 +24,8 @@ python -m venv pyenv
 git clone ~/node_arena
 cd node_arena
 pip install jax_cuda12_pjrt jaxlib numpy flax chex orbax-checkpoint optax h5py docopt --no-index
+cmake -S . -B build
+cmake --build build
 
 
 export PYTHONPATH=${SLURM_TMPDIR}/node_arena
@@ -33,8 +35,8 @@ GAME=$1
 SIZE=$2
 BASE_CONFIG="${GAME}_${SIZE//,/_}"
 CONFIG_TEMPLATE_DIR=$3
-SEED=0
+SEED=$SLURM_ARRAY_TASK_ID
 
 OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}_${BASE_CONFIG}/seed_$SEED"
 
-python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml
+python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
