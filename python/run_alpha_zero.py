@@ -229,14 +229,14 @@ if __name__ == "__main__":
         yaml.dump(raw_evaluation_cfg, f)
     f.close()
 
-    # subprocess.run(
-    #     [
-    #         "python",
-    #         "python/train_alpha_zero.py",
-    #         str(output_dir / "alpha_zero.yaml"),
-    #         "--output=" + str(output_dir),
-    #     ]
-    # )
+    subprocess.run(
+        [
+            "python",
+            "python/train_alpha_zero.py",
+            str(output_dir / "alpha_zero.yaml"),
+            "--output=" + str(output_dir),
+        ]
+    )
 
     subprocess.run(
         [
