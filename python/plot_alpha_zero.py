@@ -8,6 +8,7 @@ outcomes = {
     "P1Win": 1,
     "P2Win": -1,
     "Draw": 0,
+    "NonTerminal": 0
 }
 
 
@@ -61,8 +62,6 @@ def plot_results(working_dir: str, num_samples_list: list[int], output_path: str
         if os.path.isdir(os.path.join(working_dir, x))
     ]
     checkpoints.sort()
-    print(checkpoints)
-    print(num_samples_list)
     data = np.empty((len(checkpoints), len(num_samples_list), 2))
 
     for idx_1, checkpoint in enumerate(checkpoints):

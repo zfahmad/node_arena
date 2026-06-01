@@ -272,7 +272,6 @@ def main():
     seed_idx = 0
 
     for ckpt_dir in ckpt_paths:
-        print()
         inference_servers = [
             InferenceServerConfig(
                 game_str=raw_cfg["game"]["type_"],

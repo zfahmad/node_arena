@@ -4,8 +4,9 @@ game:
   size: []
   initial_state: ""
 
+master_seed: 0
 num_procs: 64
-games_per_proc: 20
+games_per_proc: 1
 
 player:
   type_: "puct"
@@ -24,7 +25,7 @@ player:
     final_policy:
       seed:
 
-num_samples: [16, 32, 64]
+num_samples: [32, 64, 128]
 mcts:
   type_: "mcts"
   params:
@@ -41,7 +42,13 @@ mcts:
 inference_servers: [{
     name: "s1",
     type_: "puct",
-    model_type: "CNN",
+    ckpt_dir: "",
     batch_size: 32,
-    seed: 5,
+    model_cfg: {
+        name: "ResNet",
+        hypers: {
+            dims: [],
+            num_blocks: 1
+        }
+    }
   }]
