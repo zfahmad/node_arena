@@ -5,7 +5,6 @@
 #SBATCH --mem-per-cpu=8G
 #SBATCH --time=1:00:00
 
-
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
     echo "Setting up SOCKS5 proxy..."
@@ -30,10 +29,12 @@ pip install jax_cuda12_pjrt jaxlib numpy flax chex orbax-checkpoint optax h5py d
 export PYTHONPATH=${SLURM_TMPDIR}/node_arena
 export XLA_PYTHON_CLIENT_MEMORY_PREALLOC=false
 
+GAME=$1
+SIZE=$2
+BASE_CONFIG="${GAME}_${SIZE//,/_}"
+CONFIG_TEMPLATE_DIR=$3
+SEED=0
 
-SEEDS=(0..10)
-CONFIG_PATH="${HOME}/scratch/alpha_zero/connect_four/seed_${SEEDS[$SLURM_ARRAY_TASK_ID]}/alpha_zero.yaml"
-OUTPUT_DIR="${HOME}/scratch/alpha_zero_connect_four/seed_${SEEDS[$SLURM_ARRAY_TASK_ID]}"
+OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}_${BASE_CONFIG}/seed_$SEED"
 
-
-python python/train_alpha_zero.py $CONFIG_PATH --output=$OUTPUT_DIR
+python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml
