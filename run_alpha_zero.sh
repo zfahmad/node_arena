@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --array=0-10
+#SBATCH --array=0-3
 #SBATCH --cpus-per-task=10
 #SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=8G
@@ -39,4 +39,4 @@ SEED=$SLURM_ARRAY_TASK_ID
 
 OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}_${BASE_CONFIG}/seed_$SEED"
 
-python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
+python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
