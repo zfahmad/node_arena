@@ -3,6 +3,8 @@
 #include <games/chinese_checkers/chinese_checkers.hpp>
 #include <games/chinese_checkers/chinese_checkers_state.hpp>
 #include <iostream>
+#include <cmath>
+#include <algorithm>
 
 // TODO: Currently ChineseCheckers does not check for validity of states. It is
 // not needed for AlphaZero since AlphaZero cannot traverse to illegal states.

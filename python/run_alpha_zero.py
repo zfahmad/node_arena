@@ -86,20 +86,20 @@ if __name__ == "__main__":
     save_config(output_dir / "alpha_zero.yaml", new_training_cfg)
     save_config(output_dir / "eval_alpha_zero.yaml", new_eval_cfg)
 
-    # subprocess.run(
-    #     [
-    #         "python",
-    #         "python/train_alpha_zero.py",
-    #         str(output_dir / "alpha_zero.yaml"),
-    #         "--output=" + str(output_dir),
-    #     ]
-    # )
-    #
-    # subprocess.run(
-    #     [
-    #         "python",
-    #         "python/evaluate_alpha_zero.py",
-    #         str(output_dir / "eval_alpha_zero.yaml"),
-    #         "--output=" + str(output_dir),
-    #     ]
-    # )
+    subprocess.run(
+        [
+            "python",
+            "python/train_alpha_zero.py",
+            str(output_dir / "alpha_zero.yaml"),
+            "--output=" + str(output_dir),
+        ]
+    )
+
+    subprocess.run(
+        [
+            "python",
+            "python/evaluate_alpha_zero.py",
+            str(output_dir / "eval_alpha_zero.yaml"),
+            "--output=" + str(output_dir),
+        ]
+    )

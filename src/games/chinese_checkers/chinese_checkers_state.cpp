@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <algorithm>
 
 ChineseCheckersState::ChineseCheckersState(int num_rows, int num_cols,
                                            int num_pieces) {

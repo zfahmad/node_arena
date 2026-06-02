@@ -23,7 +23,7 @@ python -m venv pyenv
 . pyenv/bin/activate
 git clone ~/node_arena
 cd node_arena
-pip install jax_cuda12_pjrt jaxlib numpy flax chex orbax-checkpoint optax h5py docopt --no-index
+pip install jax jaxlib numpy flax chex orbax-checkpoint optax h5py docopt --no-index
 cmake -S . -B build
 cmake --build build
 
