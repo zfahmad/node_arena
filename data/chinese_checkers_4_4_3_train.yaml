@@ -1,44 +1,30 @@
 game:
-  type_: ""
-  params: []
-  size: []
+  type_: "chinese_checkers"
+  params: [4, 4, 3]
+  size: [4, 4, 3]
   initial_state: ""
 
 master_seed: 0
 num_procs: 64
-games_per_proc: 1
-max_turns: 
+max_turns: 30
+num_iterations: 10000
 
 player:
   type_: "puct"
   server: "s1"
   params:
     seed: 0
-    num_samples: 64
+    num_samples: 32
     gamma: 1.0
     exploitation_threshold: 1
-    training: False
-    dirichlet_epsilon: 0.2
+    training: True
+    dirichlet_epsilon: 0.25
     dirichlet_alpha: 0.1
     tree_policy:
       seed:
       C: 1.0
     final_policy:
       seed:
-
-num_samples: [32, 64, 128]
-mcts:
-  type_: "mcts"
-  params:
-    seed: 0
-    gamma: 1.0
-    tree_policy:
-      type_: "ucb1"
-      C: 1.0
-    final_policy:
-      type_: "lcb"
-    eval_func:
-      type_: "random_rollout"
 
 inference_servers: [{
     name: "s1",
@@ -48,8 +34,18 @@ inference_servers: [{
     model_cfg: {
         name: "ResNet",
         hypers: {
-            dims: [],
-            num_blocks: 1
+            dims: [4, 4, 3],
+            num_blocks: 4
         }
     }
   }]
+
+learner:
+  batch_size: 32
+  buffer_size: 1000
+  save_interval: 1000
+  archive_dir:
+  optimizer:
+    name: "adam"
+    kwargs:
+      learning_rate: 0.001
