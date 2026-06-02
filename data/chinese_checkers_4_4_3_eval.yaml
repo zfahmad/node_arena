@@ -18,7 +18,7 @@ player:
     gamma: 1.0
     exploitation_threshold: 1
     training: False
-    dirichlet_epsilon: 0.2
+    dirichlet_epsilon: 0.25
     dirichlet_alpha: 0.1
     tree_policy:
       seed:
@@ -26,7 +26,7 @@ player:
     final_policy:
       seed:
 
-num_samples: [32, 64, 128]
+num_samples: [32, 64, 128, 256]
 mcts:
   type_: "mcts"
   params:

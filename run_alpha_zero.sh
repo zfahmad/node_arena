@@ -39,4 +39,4 @@ SEED=$SLURM_ARRAY_TASK_ID
 
 OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}_${BASE_CONFIG}/seed_$SEED"
 
-python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
+python python/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-cfg=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
