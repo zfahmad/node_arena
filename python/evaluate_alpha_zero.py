@@ -20,7 +20,7 @@ Options:
     -h --help                   # Show this screen
     -o FILE --output=FILE       # Specify output path for game data
     -v --verbose                # Print to stdout
-    --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
+    --max-turns=N               # Maximum number of turns to play before ending game
 """
 
 import importlib
