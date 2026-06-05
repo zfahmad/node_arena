@@ -35,13 +35,8 @@ from typing import Dict, List
 import numpy.random as rand
 import yaml
 
-from python.configs import (
-    GameConfig,
-    InferenceEndpoints,
-    InferenceServerConfig,
-    ModelConfig,
-    PlayerConfig,
-)
+from python.configs import (GameConfig, InferenceEndpoints,
+                            InferenceServerConfig, ModelConfig, PlayerConfig)
 from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
@@ -313,9 +308,7 @@ def main():
                 cfg = Config(
                     output=eval_output_dir,
                     verbose=arguments.get("--verbose", False),
-                    max_turns=int(
-                        arguments.get("--max-turns", raw_cfg.get("max_turns", 100))
-                    ),
+                    max_turns=int(raw_cfg.get("max_turns", 100)),
                     num_procs=raw_cfg["num_procs"],
                     games_per_proc=raw_cfg["games_per_proc"],
                     game=GameConfig(**raw_cfg["game"]),
