@@ -52,6 +52,7 @@ def generate_plot(
     plt.grid(alpha=0.25)
     plt.legend(title="MCTS Samples")
     plt.savefig(output_path + ".pdf")
+    np.save(output_path + ".npz", data)
     plt.close()
 
 
