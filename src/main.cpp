@@ -32,10 +32,34 @@ int main(int argc, char *argv[]) {
     for (int move : mask)
         std::cout << move << " ";
     std::cout << std::endl;
-    game_state.from_compact(std::vector<TicTacToeState::BBType>(256, 256));
-    game_state.print_board();
-    // TicTacToe::StateType new_state = game.get_next_state(game_state, 4);
-    // new_state.print_board();
+    TicTacToe::StateType new_state = game.get_next_state(game_state, 3);
+    std::cout << "{" << new_state.get_board()[TicTacToe::StateType::Player::One] << "," << new_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    new_state.print_board();
+
+    // Check symmetries and canoncial form
+    TicTacToe::StateType ref_state = new_state;
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.reflect_horizontal(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.rot_180(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.reflect_vertical(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.reflect_diagonal_pos(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.reflect_diagonal_neg(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.rot_90(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    // ref_state.set_board(TicTacToe::StateType::BoardType(new_state.rot_270(new_state.get_board())));
+    // std::cout << "{" << ref_state.get_board()[TicTacToe::StateType::Player::One] << "," << ref_state.get_board()[TicTacToe::StateType::Player::Two] << "}" << std::endl;
+    // ref_state.print_board();
+    ref_state.canonical_form();
     // new_state.from_string("2110122101");
     // new_state.print_board();
     // std::cout << game.is_winner(new_state, TicTacToe::StateType::Player::One)

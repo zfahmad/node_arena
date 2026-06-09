@@ -5,11 +5,12 @@
 
 int main(int argc, char **argv) {
     std::cout << "Testing connect four...\n";
-    ConnectFourState state = ConnectFourState(4, 3);
-    uint64_t bb1 = 0x0000000000030000;
-    uint64_t bb2 = 0x0000000000041000;
-    ConnectFourState::BoardType board = ConnectFourState::BoardType({bb1, bb2});
-    state.set_board(board);
+    ConnectFourState state = ConnectFourState(4, 4);
+    // ConnectFourState state = ConnectFourState(5, 5);
+    // uint64_t bb1 = 0x0000000000030000;
+    // uint64_t bb2 = 0x0000000000041000;
+    // ConnectFourState::BoardType board = ConnectFourState::BoardType({bb1, bb2});
+    // state.set_board(board);
     // state.print_board();
     // std::string state_str = state.to_string();
     // state.set_board(ConnectFourState::BoardType({0, 0}));
@@ -17,10 +18,18 @@ int main(int argc, char **argv) {
     // state.from_string(state_str);
     // state.print_board();
     //
-    state.from_string("00690e71122e71000016710e6d550a00067");
+    // state.from_string("0000000010210000 0000000000000000 044");
+    state.from_string("00000000005095800000000000a72020044");
+    // state.from_string("0000000350200200000000048b008000055");
     state.print_board();
-    ConnectFour game = ConnectFour();
-    std::cout << game.is_draw(state) << std::endl;
+    // ConnectFour game = ConnectFour();
+    // std::cout << game.is_draw(state) << std::endl;
+    ConnectFourState::BoardType reflected_board = ConnectFourState::BoardType(state.reflect_vertical(state.get_board()));
+    state.set_board(reflected_board);
+    state.print_board();
+    state.canonical_form();
+    auto compact = state.to_compact();
+    std::cout << compact[0] << " " << compact[1] << std::endl;
     // std::vector<int> actions = game.get_actions(state);
     // for (int action : actions)
     //     std::cout << action << " ";

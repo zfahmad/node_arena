@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <charconv>
 #include <cmath>
@@ -8,7 +9,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <algorithm>
+
+using BoardType = ChineseCheckersState::BoardType;
+using BBType = ChineseCheckersState::BBType;
 
 ChineseCheckersState::ChineseCheckersState(int num_rows, int num_cols,
                                            int num_pieces) {
@@ -124,8 +127,8 @@ void ChineseCheckersState::set_board(BoardType board) {
     this->piece_locations = std::move(locations);
 }
 
-std::vector<ChineseCheckersState::BBType> ChineseCheckersState::to_compact()
-const {
+std::vector<ChineseCheckersState::BBType>
+ChineseCheckersState::to_compact() const {
     std::vector<BBType> board;
     board.reserve(2);
     board.push_back(board_[Player::One]);
@@ -197,4 +200,65 @@ int ChineseCheckersState::num_pieces(BBType board) const {
         count++;
     }
     return count;
+}
+
+BoardType ChineseCheckersState::reflect_vertical(BoardType board) {
+    BoardType new_board = board;
+    BoardType temp;
+
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players) {
+        temp[player] = (new_board[player] ^ (new_board[player] >> 7)) &
+                       0x00AA00AA00AA00AAULL;
+        new_board[player] ^= temp[player] ^ (temp[player] << 7);
+        temp[player] = (new_board[player] ^ (new_board[player] >> 14)) &
+                       0x0000CCCC0000CCCCULL;
+        new_board[player] ^= temp[player] ^ (temp[player] << 14);
+        temp[player] = (new_board[player] ^ (new_board[player] >> 28)) &
+                       0x00000000F0F0F0F0ULL;
+        new_board[player] ^= temp[player] ^ (temp[player] << 28);
+    }
+
+    return new_board;
+}
+
+BoardType ChineseCheckersState::flip_board(BoardType board) {
+    // Rotates the board 180
+    BoardType new_board = BoardType({0ULL, 0ULL});
+    BoardType temp = board;
+    BBType bit = 1ULL;
+
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    std::cout << this->num_cols_ * this->num_rows_ << std::endl;
+    int offset = (6 - this->num_rows_);
+    for (Player player : players) {
+        temp[player] <<= (offset * 9);
+
+        for (int i = 0; i < 64; i++) {
+            new_board[player] |= (temp[player] & bit);
+            temp[player] >>= 1;
+            new_board[player] <<= 1;
+        }
+        new_board[player] >>= 1;
+    }
+
+    return BoardType({new_board[Player::Two], new_board[Player::One]});
+}
+
+std::array<BBType, 2> ChineseCheckersState::canonical_form() {
+    std::vector<std::array<BBType, 2>> symmetries;
+    BoardType board = get_board();
+    BoardType transformed_board;
+    symmetries.push_back({board[Player::One], board[Player::Two]});
+    transformed_board = reflect_vertical(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+
+    std::array<BBType, 2> canonical = *std::min_element(symmetries.begin(), symmetries.end());
+    return canonical;
 }

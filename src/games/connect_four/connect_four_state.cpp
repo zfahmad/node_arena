@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 
+using BoardType = ConnectFourState::BoardType;
+
 ConnectFourState::ConnectFourState(int num_rows, int num_cols) {
     // WARN: Min size shouldn't be greater than 0. This is only for testing.
     if ((num_rows < 0) || (num_rows > 6) || (num_cols < 0) || (num_cols > 7)) {
@@ -125,3 +127,57 @@ void ConnectFourState::from_string(std::string state_str) {
     this->num_rows_ = state_str[33] - '0';
     this->num_cols_ = state_str[34] - '0';
 };
+
+BoardType ConnectFourState::reflect_vertical(BoardType board) {
+    BoardType new_board = BoardType({0, 0});
+    BBType column = 0ULL;
+    BBType bit = 1ULL;
+    std::uint8_t mid = this->num_cols_ / 2;
+    for (int i = 0; i < this->num_rows_; i++) {
+        bit <<= (this->num_cols_ + 1);
+        column |= bit;
+    }
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players) {
+        for (int i = 0; i <= mid; i++) {
+            bit = column & board[player];
+            new_board[player] |= (bit << (this->num_cols_ - (i * 2) - 1));
+            column <<= 1;
+        }
+        column >>= mid + 1;
+    }
+
+    column <<= this->num_cols_ - 1;
+    for (Player player : players) {
+        for (int i = 0; i < mid; i++) {
+            bit = column & board[player];
+            new_board[player] |= (bit >> (this->num_cols_ - (i * 2) - 1));
+            column >>= 1;
+        }
+        column <<= mid;
+    }
+
+    return new_board;
+}
+
+std::array<ConnectFourState::BBType, 2> ConnectFourState::canonical_form() {
+    std::vector<std::array<BBType, 2>> symmetries;
+    BoardType board = get_board();
+    BoardType transformed_board;
+    symmetries.push_back({board[Player::One], board[Player::Two]});
+
+    transformed_board = reflect_vertical(board);
+    symmetries.push_back(
+        {transformed_board[Player::One], transformed_board[Player::Two]});
+
+    std::array<BBType, 2> canonical =
+        *std::min_element(symmetries.begin(), symmetries.end());
+    for (auto sym : symmetries) {
+        std::cout << "{" << sym[0] << ", " << sym[1] << "}, ";
+    }
+
+    return canonical;
+}

@@ -25,6 +25,15 @@ public:
     }
     void set_player(Player player) { player_ = player; }
 
+    std::array<BBType, 2> canonical_form();
+    BoardType reflect_horizontal(BoardType board);
+    BoardType reflect_vertical(BoardType board);
+    BoardType reflect_diagonal_pos(BoardType board);
+    BoardType reflect_diagonal_neg(BoardType board);
+    BoardType rot_180(BoardType board);
+    BoardType rot_90(BoardType board);
+    BoardType rot_270(BoardType board);
+
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;

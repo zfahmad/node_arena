@@ -33,6 +33,11 @@ public:
     int num_pieces(BBType board) const;
     std::vector<std::vector<int>> piece_locations;
 
+    std::array<std::uint64_t, 2> canonical_form();
+    BoardType reflect_vertical(BoardType board);
+    BoardType flip_board(BoardType board);
+    // void flip_state();
+
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;

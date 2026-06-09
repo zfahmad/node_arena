@@ -3,6 +3,10 @@
 #include <games/tic_tac_toe/tic_tac_toe_state.hpp>
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
+
+using BBType = TicTacToeState::BBType;
+using BoardType = TicTacToeState::BoardType;
 
 TicTacToeState::TicTacToeState(int num_rows, int num_cols) {
     this->num_rows_ = num_rows;
@@ -112,3 +116,143 @@ void TicTacToeState::from_string(std::string state_str) {
     else
         player_ = Player::Two;
 };
+
+BoardType TicTacToeState::rot_180(BoardType board) {
+    BoardType new_board = BoardType({0, 0});
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players){
+        BBType left = 1;
+        BBType right = 1 << 8;
+
+        for (int i = 0; i < 9; i++) {
+            if (board[player] & left) {
+                new_board[player] |= right;
+            }
+            left <<= 1;
+            right >>= 1;
+        }
+    }
+    
+    return new_board;
+}
+
+BoardType TicTacToeState::reflect_horizontal(BoardType board) {
+    BBType reflect_mask = 0x0049;
+    BoardType new_board = BoardType({0, 0});
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players) {
+        BBType pieces = reflect_mask & board[player];
+        pieces = pieces << 2;
+        new_board[player] |= pieces;
+    }
+
+    reflect_mask = 0x0092;
+
+    for (Player player : players) {
+        BBType pieces = reflect_mask & board[player];
+        new_board[player] |= pieces;
+    }
+
+    reflect_mask = 0x0124;
+
+    for (Player player : players) {
+        BBType pieces = reflect_mask & board[player];
+        pieces = pieces >> 2;
+        new_board[player] |= pieces;
+    }
+
+    return new_board;
+}
+
+BoardType TicTacToeState::reflect_vertical(BoardType board) {
+    // Vertical reflection is a 180 rotation followed by a horizontal
+    // reflection.
+    BoardType new_board = rot_180(board);
+    new_board = reflect_horizontal(new_board);
+    return new_board;
+}
+
+BBType swap_bit(BBType board, int pos_1, int pos_2) {
+    BBType bit_1 = (board >> pos_1) & 1;
+    BBType bit_2 = (board >> pos_2) & 1;
+    BBType x = bit_1 ^ bit_2;
+    BBType mask = (x << pos_1) | (x << pos_2);
+    return board ^ mask;
+}
+
+BoardType TicTacToeState::reflect_diagonal_pos(BoardType board) {
+    BoardType new_board = board;
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players) {
+        new_board[player] = swap_bit(board[player], 1, 3);
+        new_board[player] = swap_bit(new_board[player], 2, 6);
+        new_board[player] = swap_bit(new_board[player], 5, 7);
+    }
+
+    return new_board;
+}
+
+BoardType TicTacToeState::reflect_diagonal_neg(BoardType board) {
+    BoardType new_board = board;
+    std::vector<Player> players;
+    players.push_back(Player::One);
+    players.push_back(Player::Two);
+
+    for (Player player : players) {
+        new_board[player] = swap_bit(board[player], 1, 5);
+        new_board[player] = swap_bit(new_board[player], 0, 8);
+        new_board[player] = swap_bit(new_board[player], 3, 7);
+    }
+
+    return new_board;
+}
+
+BoardType TicTacToeState::rot_90(BoardType board) {
+    // Reflection along the negative gradient plus a vertical reflection.
+    
+    BoardType new_board = reflect_diagonal_pos(board);
+    new_board = reflect_horizontal(new_board);
+    return new_board;
+}
+
+BoardType TicTacToeState::rot_270(BoardType board) {
+    // Reflection along the positive gradient plus a vertical reflection.
+    
+    BoardType new_board = reflect_diagonal_neg(board);
+    new_board = reflect_horizontal(new_board);
+    return new_board;
+}
+
+std::array<BBType, 2> TicTacToeState::canonical_form() {
+    std::vector<std::array<BBType, 2>> symmetries;
+    BoardType board = get_board();
+    BoardType transformed_board;
+    symmetries.push_back({board[Player::One], board[Player::Two]});
+
+    transformed_board = rot_90(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = rot_180(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = rot_270(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = reflect_horizontal(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = reflect_vertical(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = reflect_diagonal_pos(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = reflect_diagonal_neg(board);
+    symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+
+    std::array<BBType, 2> canonical = *std::min_element(symmetries.begin(), symmetries.end());
+    return canonical;
+}

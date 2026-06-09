@@ -29,6 +29,9 @@ public:
     int get_num_cols() const { return num_cols_; }
     int get_num_rows() const { return num_rows_; }
 
+    std::array<BBType, 2> canonical_form();
+    BoardType reflect_vertical(BoardType board);
+
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;
