@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <state.hpp>
 
 template <typename G>
 concept Game =

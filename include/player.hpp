@@ -18,6 +18,8 @@ public:
         return data_[to_index(p)];
     }
 
+    constexpr const std::array<T, 2> &data() const noexcept { return data_; }
+
 private:
     static constexpr std::size_t to_index(PlayerEnum p) noexcept {
         return static_cast<std::size_t>(p);
