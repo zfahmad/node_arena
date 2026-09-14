@@ -1,5 +1,5 @@
 """
-evaluate_alpha_zero.py
+evaluate_rc_alpha_zero.py
 Author: Zaheen Ahmad
 
 Evaluates AlphaZero against a reference agent (MCTS). Evaluates each checkpoint
@@ -44,7 +44,7 @@ from python.play import Play
 from python.players.player_protocols import PlayerProtocol
 from python.players.puct_inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
-from python.algorithms.bidirectional_alpha_zero.plot_bd_alpha_zero import plot_results
+from python.algorithms.reverse_curriculum_alpha_zero.plot_rc_alpha_zero import plot_results
 
 
 @dataclass
