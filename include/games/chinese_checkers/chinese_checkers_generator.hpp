@@ -6,8 +6,11 @@
 class Generator {
 public:
     Generator() {};
-    std::vector<std::array<std::uint64_t, 2>> generate_all_states(const ChineseCheckers& game, ChineseCheckersState& state);
-    void generate_terminal_states(const ChineseCheckers& game, ChineseCheckersState& state);
+    std::vector<std::array<ChineseCheckersState::BBType, 2>>
+    generate_all_states(const ChineseCheckers &game,
+                        ChineseCheckersState &state);
+    void generate_terminal_states(const ChineseCheckers &game,
+                                  ChineseCheckersState &state);
 };
 
 #endif

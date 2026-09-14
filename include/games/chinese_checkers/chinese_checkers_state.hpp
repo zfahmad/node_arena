@@ -5,11 +5,30 @@
 #include <player.hpp>
 #include <state.hpp>
 #include <vector>
+#include <cstdint>
+#include <iostream>
+
+typedef __int128 int128_t;
+typedef unsigned __int128 uint128_t;
+#define MAX_ROW 11
+
+// Overload for Unsigned 128-bit Integers
+inline std::ostream& operator<<(std::ostream& os, uint128_t v) {
+    if (v == 0) return os << "0";
+    
+    std::string s;
+    while (v > 0) {
+        s += '0' + (v % 10);
+        v /= 10;
+    }
+    std::reverse(s.begin(), s.end());
+    return os << s;
+}
 
 class ChineseCheckersState {
 public:
     enum class Player { One, Two };
-    using BBType = std::uint64_t;
+    using BBType = uint128_t;
     using BoardType = PlayerIndexed<BBType, Player>;
 
     ChineseCheckersState(int num_rows = 6, int num_cols = 6,
@@ -33,7 +52,7 @@ public:
     int num_pieces(BBType board) const;
     std::vector<std::vector<int>> piece_locations;
 
-    std::array<std::uint64_t, 2> canonical_form();
+    std::array<BBType, 2> canonical_form();
     void from_canonical_form(std::array<BBType, 2> canonical_state);
     BoardType reflect_vertical(BoardType board);
     BoardType flip_board(BoardType board);

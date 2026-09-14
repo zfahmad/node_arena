@@ -5,57 +5,73 @@
 #include <games/chinese_checkers/chinese_checkers_state.hpp>
 #include <vector>
 
-const int SHIFTS[] = {1, 9, 8, 7, 1, 9, 8, 7};
+const int SHIFTS[] = {1, 12, 11, 10, 1, 12, 11, 10};
 
-const ChineseCheckersState::BBType SHIFT_MASKS[] = {
-    0xFEFEFEFEFEFEFEFE, // Right Shift
-    0xFEFEFEFEFEFEFE00, // Down-right Shift
-    0xFFFFFFFFFFFFFF00, // Down shift
-    0x7F7F7F7F7F7F7F00, // Down-left shift
-    0x7F7F7F7F7F7F7F7F, // Left shift
-    0x007F7F7F7F7F7F7F, // Up-left shift
-    0x00FFFFFFFFFFFFFF, // Up shift
-    0x00FEFEFEFEFEFEFE, // Up-right shift
-};
+// const ChineseCheckersState::BBType SHIFT_MASKS[] = {
+//     0xFEFEFEFEFEFEFEFE, // Right Shift
+//     0xFEFEFEFEFEFEFE00, // Down-right Shift
+//     0xFFFFFFFFFFFFFF00, // Down shift
+//     0x7F7F7F7F7F7F7F00, // Down-left shift
+//     0x7F7F7F7F7F7F7F7F, // Left shift
+//     0x007F7F7F7F7F7F7F, // Up-left shift
+//     0x00FFFFFFFFFFFFFF, // Up shift
+//     0x00FEFEFEFEFEFEFE, // Up-right shift
+// };
 
 const int STEP_SHIFTS[] = {
     1, // North-West
-    8, // North-East
-    7, // East
+    11, // North-East
+    10, // East
     1, // South-East
-    8, // South-West
-    7, // West
+    11, // South-West
+    10, // West
 };
 
 const int STARTING_LOCATIONS[10][10] = {
-    {9, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-    {10, 17, -1, -1, -1, -1, -1, -1, -1, -1},
-    {9, 10, 17, -1, -1, -1, -1, -1, -1, -1},
-    {9, 10, 17, 18, -1, -1, -1, -1, -1, -1},
-    {9, 10, 17, 11, 25, -1, -1, -1, -1, -1},
-    {9, 10, 17, 11, 25, 18, -1, -1, -1, -1},
-    {10, 17, 11, 25, 18, 19, 26, -1, -1, -1},
-    {9, 10, 17, 11, 25, 18, 19, 26, -1, -1},
-    {10, 17, 11, 25, 18, 19, 26, 12, 33, -1},
-    {9, 10, 17, 11, 25, 18, 19, 26, 12, 33},
+    {12, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {13, 23, -1, -1, -1, -1, -1, -1, -1, -1},
+    {12, 13, 23, -1, -1, -1, -1, -1, -1, -1},
+    {12, 13, 23, 24, -1, -1, -1, -1, -1, -1},
+    {12, 13, 23, 34, 14, -1, -1, -1, -1, -1},
+    {12, 13, 23, 24, 34, 14, -1, -1, -1, -1},
+    {13, 14, 23, 24, 25, 34, 35, -1, -1, -1},
+    {12, 13, 14, 23, 24, 25, 34, 35, -1, -1},
+    {13, 14, 15, 23, 24, 25, 34, 35, 45, -1},
+    {12, 13, 14, 15, 23, 24, 25, 34, 35, 45},
 };
 
 const ChineseCheckersState::BBType SETUPS[] = {
-    (1 << 9),
-    (1 << 17) + (1 << 10),
-    (1 << 9) + (1 << 17) + (1 << 10),
-    (1 << 9) + (1 << 17) + (1 << 10) + (1 << 18),
-    (1 << 9) + (1 << 17) + (1 << 10) + (1 << 25) + (1 << 11),
-    (1 << 9) + (1 << 17) + (1 << 10) + (1 << 25) + (1 << 18) + (1 << 11),
-    (1 << 17) + (1 << 10) + (1 << 25) + (1 << 18) + (1 << 11) + (1 << 26) +
-        (1 << 19),
-    (1ULL << 9) + (1ULL << 17) + (1ULL << 10) + (1ULL << 25) + (1ULL << 18) +
-        (1ULL << 11) + (1ULL << 26) + (1ULL << 19),
-    (1ULL << 17) + (1ULL << 10) + (1ULL << 25) + (1ULL << 18) + (1ULL << 11) +
-        (1ULL << 33) + (1ULL << 26) + (1ULL << 19) + (1ULL << 12),
-    (1ULL << 9) + (1ULL << 17) + (1ULL << 10) + (1ULL << 25) + (1ULL << 18) +
-        (1ULL << 11) + (1ULL << 33) + (1ULL << 26) + (1ULL << 19) +
-        (1ULL << 12),
+    ((uint128_t)1 << 12),
+
+    ((uint128_t)1 << 13) + ((uint128_t)1 << 23),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 13) + ((uint128_t)1 << 23),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 13) + ((uint128_t)1 << 23) +
+        ((uint128_t)1 << 24),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 13) + ((uint128_t)1 << 23) +
+        ((uint128_t)1 << 34) + ((uint128_t)1 << 14),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 13) + ((uint128_t)1 << 23) +
+        ((uint128_t)1 << 24) + ((uint128_t)1 << 34) + ((uint128_t)1 << 14),
+
+    ((uint128_t)1 << 13) + ((uint128_t)1 << 14) + ((uint128_t)1 << 23) +
+        ((uint128_t)1 << 24) + ((uint128_t)1 << 25) + ((uint128_t)1 << 34) +
+        ((uint128_t)1 << 35),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 13) + ((uint128_t)1 << 14) +
+        ((uint128_t)1 << 23) + ((uint128_t)1 << 24) + ((uint128_t)1 << 25) +
+        ((uint128_t)1 << 34) + ((uint128_t)1 << 35),
+
+    ((uint128_t)1 << 45) + ((uint128_t)1 << 13) + ((uint128_t)1 << 14) +
+        ((uint128_t)1 << 23) + ((uint128_t)1 << 24) + ((uint128_t)1 << 25) +
+        ((uint128_t)1 << 34) + ((uint128_t)1 << 35) + ((uint128_t)1 << 15),
+
+    ((uint128_t)1 << 12) + ((uint128_t)1 << 45) + ((uint128_t)1 << 13) +
+        ((uint128_t)1 << 14) + ((uint128_t)1 << 23) + ((uint128_t)1 << 24) +
+        ((uint128_t)1 << 25) + ((uint128_t)1 << 34) + ((uint128_t)1 << 35) +
+        ((uint128_t)1 << 15),
 };
 
 class ChineseCheckers {
@@ -93,7 +109,6 @@ public:
     StateType::BoardType initial_board;
 
 protected:
-
 private:
     int num_rows_, num_cols_, num_pieces_;
 };

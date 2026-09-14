@@ -3,6 +3,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/operators.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -24,7 +25,8 @@ NB_MODULE(chinese_checkers_wrapper, m) {
         .def("from_string", &ChineseCheckersState::from_string)
         .def("get_player", &ChineseCheckersState::get_player)
         .def("get_opponent", &ChineseCheckersState::get_opponent)
-        .def("set_player", &ChineseCheckersState::set_player);
+        .def("set_player", &ChineseCheckersState::set_player)
+        .def(nb::self == nb::self);
     state_class.attr("Player") = m.attr("Player");
 
     nb::enum_<ChineseCheckers::Outcomes>(m, "Outcomes")
@@ -40,8 +42,11 @@ NB_MODULE(chinese_checkers_wrapper, m) {
         .def("get_id", &ChineseCheckers::get_id)
         .def("reset", &ChineseCheckers::reset)
         .def("get_actions", &ChineseCheckers::get_actions)
+        .def("get_reverse_actions", &ChineseCheckers::get_reverse_actions)
         .def("apply_action", &ChineseCheckers::apply_action)
+        .def("undo_action", &ChineseCheckers::undo_action)
         .def("get_next_state", &ChineseCheckers::get_next_state)
+        .def("get_previous_state", &ChineseCheckers::get_previous_state)
         .def("is_winner", &ChineseCheckers::is_winner)
         .def("is_draw", &ChineseCheckers::is_draw)
         .def("is_terminal", &ChineseCheckers::is_terminal)

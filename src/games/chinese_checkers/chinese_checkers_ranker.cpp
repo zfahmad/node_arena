@@ -8,12 +8,13 @@ Ranker::Ranker(int dim, int pieces)
 }
 
 BBType Ranker::bit_to_compact(BBType bitboard) const {
-    BBType dense = 0ULL;
-    BBType shifted = bitboard >> 9;
-    BBType row_mask = (1ULL << dim_) - 1;
+    BBType dense = (uint128_t)0;
+    BBType shifted = bitboard >> (MAX_ROW + 1);
+    BBType row_mask = ((uint128_t)1 << dim_) - 1;
     for (int i = 0; i < dim_; i++) {
-        BBType row_bits = (shifted >> (i * 8)) & row_mask; // isolate row i
-        dense |= row_bits << (i * dim_);                   // pack tightly
+        BBType row_bits =
+            (shifted >> (i * MAX_ROW)) & row_mask; // isolate row i
+        dense |= row_bits << (i * dim_);           // pack tightly
     }
     return dense;
 }
@@ -37,7 +38,7 @@ BBType Ranker::unrank_combination(BBType rank) const {
     for (int c = N_ - 1; c >= 0 && k > 0; c--) {
         BBType val = at(c, k);
         if (val <= rank) {
-            result |= (1ULL << c);
+            result |= ((uint128_t)1 << c);
             rank -= val;
             k--;
         }
@@ -49,8 +50,8 @@ BBType Ranker::relabel_after_removal(BBType bits, BBType removed) const {
     BBType result = 0;
     while (bits) {
         int pos = std::countr_zero(bits);
-        int shift = std::popcount(removed & ((1ULL << pos) - 1));
-        result |= 1ULL << (pos - shift);
+        int shift = std::popcount(removed & (((uint128_t)1 << pos) - 1));
+        result |= (uint128_t)1 << (pos - shift);
         bits &= bits - 1;
     }
     return result;

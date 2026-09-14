@@ -1,30 +1,54 @@
 #include <cstdint>
 #include <games/chinese_checkers/chinese_checkers.hpp>
-#include <games/chinese_checkers/chinese_checkers_state.hpp>
 #include <games/chinese_checkers/chinese_checkers_generator.hpp>
+#include <games/chinese_checkers/chinese_checkers_state.hpp>
 #include <iostream>
 
 int main(int argc, char **argv) {
     std::cout << "Testing chinese_checkers...\n";
-    int dim = 4;
-    int num_pieces = 3;
+    int dim = 5;
+    int num_pieces = 4;
     Generator generator;
     ChineseCheckersState state = ChineseCheckersState(dim, dim, num_pieces);
-    ChineseCheckersState new_state;
+    ChineseCheckersState new_state{dim, dim, num_pieces};
     ChineseCheckers game = ChineseCheckers(dim, dim, num_pieces);
     // Initial board for 3x3x3
     // ChineseCheckersState::BoardType board =
     //     ChineseCheckersState::BoardType({132608, 201850880});
     // Initial board for 4x4x3
     // ChineseCheckersState::BoardType board =
-    //     ChineseCheckersState::BoardType({132608, 103347650560});
+    //     ChineseCheckersState::BoardType({8400896, 103347650560});
     // state.set_board(board);
 
     game.reset(state);
+    std::vector<std::vector<int>> locations = state.piece_locations;
+    state.print_board();
+    for (auto player_locations : locations) {
+        for (auto l : player_locations)
+            std::cout << l << " ";
+        std::cout << "\n\n";
+    }
 
-    generator.generate_all_states(game, state);
-    // generator.generate_terminal_states(game, state);
+    std::vector<ChineseCheckers::ActionType> actions = game.get_actions(state);
+    for (auto action : actions) {
+        std::cout << action << "\n";
+        new_state = game.get_next_state(state, action);
+        new_state.print_board();
+    }
+    std::cout << std::endl;
 
+    new_state.print_board();
+    state.set_board(new_state.flip_board(new_state.get_board()));
+    state.print_board();
+
+    state.set_board(new_state.reflect_vertical(new_state.get_board()));
+    state.print_board();
+
+    new_state.print_board();
+    std::cout << new_state.to_string() << "\n";
+    new_state.from_string(state.to_string());
+    new_state.print_board();
+    std::cout << new_state.to_string() << std::endl;
     // game.print_mask(game.destinations_mask);
     // game.print_mask(~game.empties_mask);
     // std::vector<ChineseCheckers::ActionType> actions =
@@ -67,6 +91,45 @@ int main(int argc, char **argv) {
     // ChineseCheckersState::BBType p2 =
     //     (1ULL << 20) + (1ULL << 36) + (1ULL << 18);
     // state.set_board(ChineseCheckersState::BoardType({p1, p2}));
+    // state.set_player(ChineseCheckersState::Player::One);
+    // state.print_board();
+    // std::cout << "Player: " << static_cast<int>(state.get_player()) << "\n";
+    //
+    // std::vector<ChineseCheckers::ActionType> factions, ractions;
+    // factions = game.get_actions(state);
+    // ractions = game.get_reverse_actions(state);
+    //
+    // std::cout << "Printing forward states...\n";
+    // for (auto action : factions) {
+    //     auto next_state = game.get_next_state(state, action);
+    //     next_state.print_board();
+    // }
+    //
+    // std::cout << "Printing backward states...\n";
+    // for (auto action : ractions) {
+    //     auto prev_state = game.get_previous_state(state, action);
+    //     prev_state.print_board();
+    // }
+    //
+    // game = ChineseCheckers(5, 5, 6);
+    // state = ChineseCheckersState(5, 5, 6);
+    // // state.from_string("00706040000000000000000004060e00166");
+    // game.reset(state);
+    // state.print_board();
+    // state.set_board(ChineseCheckersState::BoardType({61779346456576,
+    // 67505664})); state.set_player(ChineseCheckersState::Player::Two);
+    // state.print_board();
+    // std::cout << state.to_string() << std::endl;
+
+    // ractions = game.get_reverse_actions(state);
+    //
+    // std::cout << "Current player: " << static_cast<int>(state.get_player())
+    // << "\n"; std::cout << "Printing backward states...\n"; for (auto action :
+    // ractions) {
+    //     auto prev_state = game.get_previous_state(state, action);
+    //     prev_state.print_board();
+    // }
+    // std::cout << std::endl;
     // for (int i = 0; i < 3; i++)
     //     std::cout << state.piece_locations[0][i] << " ";
     // std::cout << std::endl;
@@ -78,7 +141,9 @@ int main(int argc, char **argv) {
     // game.get_actions(state);
     // //
     // state.print_board();
-    // ChineseCheckers::ActionType a = actions[11];
+    // state.set_player(ChineseCheckersState::Player::Two);
+    // ChineseCheckers::ActionType a = game.get_actions(state)[1];
+    // std::cout << a << "\n";
     // state = game.get_next_state(state, a);
     // state.print_board();
     // state = game.get_previous_state(state, a);
