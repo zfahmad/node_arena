@@ -1,7 +1,5 @@
-#include <algorithm>
 #include <cassert>
 #include <charconv>
-#include <cmath>
 #include <constants.hpp>
 #include <games/lines_of_action/lines_of_action_state.hpp>
 #include <iomanip>
@@ -9,7 +7,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-
 
 using BoardType = LinesOfActionState::BoardType;
 using BBType = LinesOfActionState::BBType;

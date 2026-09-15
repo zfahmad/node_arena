@@ -1,10 +1,8 @@
 #include <array>
-#include <bitset>
 #include <cassert>
 #include <constants.hpp>
 #include <games/lines_of_action/lines_of_action.hpp>
 #include <games/lines_of_action/lines_of_action_state.hpp>
-#include <iomanip>
 #include <iostream>
 
 // TODO: Currently the game does not check for validity of states. It is not
@@ -45,6 +43,11 @@ LinesOfAction::LinesOfAction(int num_rows) {
 
     int dirs[8] = {dirs::NORTH, dirs::NORTHEAST, dirs::EAST, dirs::SOUTHEAST,
                    dirs::SOUTH, dirs::SOUTHWEST, dirs::WEST, dirs::NORTHWEST};
+
+    // Create table of destinations and paths
+    // Index 0: Direction of jump
+    // Index 1: Source cell
+    // Index 2: Distance of jump
 
     for (int k = 0; k < (ROW_MAX * ROW_MAX); k++) {
         for (int i = 0; i < ROW_MAX; i++) {
@@ -353,8 +356,8 @@ LinesOfAction::get_actions(const StateType &state) const {
             if (bit_ind >= 0) {
                 int s = location_to_index(source, num_rows_);
                 // convert the action specs to an action
-                int action = (s * (num_rows_ * 8)) + (dir * num_rows_) +
-                             (steps[dir]);
+                int action =
+                    (s * (num_rows_ * 8)) + (dir * num_rows_) + (steps[dir]);
 
                 // Add action to set of actions if:
                 // 1. there is no opponent piece along the path of the player's

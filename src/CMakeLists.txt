@@ -24,6 +24,7 @@ set(GAMES
     connect_four
     othello
     chinese_checkers
+    lines_of_action
 )
 
 foreach(lib IN LISTS GAMES)
