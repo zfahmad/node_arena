@@ -36,6 +36,6 @@ BASE_CONFIG="${GAME}_${SIZE//,/_}"
 CONFIG_TEMPLATE_DIR=$3
 SEED=$SLURM_ARRAY_TASK_ID
 
-OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}/${BASE_CONFIG}/seed_$SEED"
+OUTPUT_DIR="${HOME}/scratch/bd_alpha_zero/${GAME}/${BASE_CONFIG}/seed_$SEED"
 
-python python/algorithms/alpha_zero/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
+python python/algorithms/bidirectional_alpha_zero/run_bd_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED

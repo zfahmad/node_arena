@@ -413,6 +413,8 @@ def main():
     # Start actors and wait until they finish
     for p in actor_processes:
         p.start()
+    for p in reverse_actor_processes:
+        p.start()
 
     learner_process.start()
 
