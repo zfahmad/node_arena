@@ -2,12 +2,12 @@ game:
   type_: "chinese_checkers"
   params: [5, 5, 6]
   size: [5, 5, 6]
-  initial_state: "00003830200000000000000004060e00155"
+  initial_state: ""
 
 master_seed: 0
 num_procs: 64
-max_turns: 50
-num_iterations: 10000
+max_turns: 70
+num_iterations: 30000
 
 player:
   type_: "puct"
@@ -43,7 +43,7 @@ inference_servers: [{
 learner:
   batch_size: 32
   buffer_size: 1000
-  save_interval: 1000
+  save_interval: 5000
   archive_dir:
   optimizer:
     name: "adam"
