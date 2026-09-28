@@ -1,15 +1,14 @@
 #!/bin/bash
 #SBATCH --array=0-3
 #SBATCH --cpus-per-task=10
-#SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=8G
 #SBATCH --time=1:00:00
 
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
-	echo "Setting up SOCKS5 proxy..."
-	ssh -q -N -T -f -D 8888 $(echo $SSH_CONNECTION | cut -d " " -f 3)
-	export ALL_PROXY=socks5h://localhost:8888
+    echo "Setting up SOCKS5 proxy..."
+    ssh -q -N -T -f -D 8888 $(echo $SSH_CONNECTION | cut -d " " -f 3)
+    export ALL_PROXY=socks5h://localhost:8888
 fi
 
 # Setup modules
