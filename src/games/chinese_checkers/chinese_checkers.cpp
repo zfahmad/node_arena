@@ -16,22 +16,22 @@ using BBType = typename ChineseCheckersState::BBType;
 
 BBType generate_destinations_mask(int num_rows, int num_cols) {
     // Masks out non-valid destinations for a given board size.
-    BBType mask = ~0ULL;
-    BBType empty = (1 << num_cols) - 1;
-    empty = empty << 9;
+    BBType mask = ~(uint128_t)0;
+    BBType empty = ((uint128_t)1 << num_cols) - 1;
+    empty = empty << (MAX_ROW + 1);
     for (int i = 0; i < num_rows; i++) {
         mask = mask ^ empty;
-        empty = empty << 8;
+        empty = empty << MAX_ROW;
     }
     return mask;
 }
 
 BBType generate_initial_configuration(int num_pieces) {
-    BBType initial = 0ULL;
+    BBType initial = (uint128_t)0;
     int i = 0;
 
     do {
-        initial += 1ULL << STARTING_LOCATIONS[num_pieces - 1][i];
+        initial += (uint128_t)1 << STARTING_LOCATIONS[num_pieces - 1][i];
         i++;
     } while ((STARTING_LOCATIONS[num_pieces - 1][i] != -1) && (i < 11));
 
@@ -52,8 +52,8 @@ std::vector<std::vector<int>> get_initial_piece_locs(int num_rows,
     player_locations.clear();
 
     i = 0;
-    int offset = 6 - num_rows;
-    int final_bit = 63 - (offset * 9);
+    int offset = (MAX_ROW + 1) - num_rows;
+    int final_bit = 108 - (offset * 122);
 
     do {
         player_locations.push_back(final_bit -
@@ -69,19 +69,36 @@ BBType generate_empties_mask(int num_rows, int num_cols, int num_pieces) {
     // Masks out non-valid empty locations for a given size.
     // Depending on the dimensions and the number of pieces, players may use
     // other goal regions for intermediary hops.
-    BBType mask = ~0ULL;
-    BBType empty = (1 << num_cols) - 1;
-    empty = empty << 9;
+    BBType mask = ~(uint128_t)0;
+    BBType empty = ((uint128_t)1 << num_cols) - 1;
+    empty = empty << 12;
     for (int i = 0; i < num_rows; i++) {
         mask = mask ^ empty;
-        empty = empty << 8;
+        empty = empty << 11;
     }
 
     // Check if board size and number of pieces allow for empty goal spaces.
     if ((num_rows == 5) && (num_pieces < 4)) {
-        BBType outside = (1ULL << 4) + (1ULL << 5) + (1ULL << 14) +
-                         (1ULL << 22) + (1ULL << 32) + (1ULL << 40) +
-                         (1ULL << 49) + (1ULL << 50);
+        BBType outside = ((uint128_t)1 << 4) + ((uint128_t)1 << 5) +
+                         ((uint128_t)1 << 17) + ((uint128_t)1 << 28) +
+                         ((uint128_t)1 << 44) + ((uint128_t)1 << 55) +
+                         ((uint128_t)1 << 67) + ((uint128_t)1 << 68);
+        mask = mask ^ outside;
+    }
+
+    if ((num_rows == 7) && (num_pieces < 7)) {
+        BBType outside = ((uint128_t)1 << 5) + ((uint128_t)1 << 6) + ((uint128_t)1 << 7) +
+                         ((uint128_t)1 << 19) + ((uint128_t)1 << 30) + ((uint128_t)1 << 41) +
+                         ((uint128_t)1 << 55) + ((uint128_t)1 << 66) + ((uint128_t)1 << 77) +
+                         ((uint128_t)1 << 89) + ((uint128_t)1 << 90) + ((uint128_t)1 << 91);
+        mask = mask ^ outside;
+    }
+
+    if (num_rows == 9) {
+        BBType outside = ((uint128_t)1 << 6) + ((uint128_t)1 << 7) + ((uint128_t)1 << 8) + ((uint128_t)1 << 9) +
+                         ((uint128_t)1 << 21) + ((uint128_t)1 << 32) + ((uint128_t)1 << 43) + ((uint128_t)1 << 54) +
+                         ((uint128_t)1 << 66) + ((uint128_t)1 << 77) + ((uint128_t)1 << 88) + ((uint128_t)1 << 99) +
+                         ((uint128_t)1 << 111) + ((uint128_t)1 << 112) + ((uint128_t)1 << 113) + ((uint128_t)1 << 114);
         mask = mask ^ outside;
     }
     return mask;
@@ -99,11 +116,11 @@ void ChineseCheckers::reset(StateType &state) {
     // Create an empty board and add initial configuration of the 4 player
     // pieces.
     // NOTE: This is for 64-bit integers only
-    BBType bb_1 = 0ULL;
-    BBType bb_2 = 0ULL;
-    BBType bit = 1ULL << 9;
-    BBType back_bit = 1ULL << 54;
-    back_bit = back_bit >> ((6 - state.get_num_rows()) * 9);
+    BBType bb_1 = (uint128_t)0;
+    BBType bb_2 = (uint128_t)0;
+    BBType bit = (uint128_t)1 << (MAX_ROW + 1);
+    BBType back_bit = (uint128_t)1 << 108;
+    back_bit = back_bit >> ((9 - state.get_num_rows()) * 12);
 
     // Lookup initial setup for player one.
     // bb_1 = SETUPS[state.get_num_pieces() - 1];
@@ -120,8 +137,8 @@ void ChineseCheckers::reset(StateType &state) {
             bit = bit << 1;
             back_bit = back_bit >> 1;
         }
-        bit = bit << (8 - state.get_num_cols());
-        back_bit = back_bit >> (8 - state.get_num_cols());
+        bit = bit << (MAX_ROW - state.get_num_cols());
+        back_bit = back_bit >> (MAX_ROW - state.get_num_cols());
     }
     bb_2 = ~this->destinations_mask & bb_2;
     state.piece_locations =
@@ -135,11 +152,11 @@ void ChineseCheckers::reset(StateType &state) {
 void ChineseCheckers::print_mask(BBType mask) {
     int shift;
     BBType start = 1;
-    BBType bit = 1ULL;
+    BBType bit = (uint128_t)1;
 
-    shift = 8;
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8 - i; j++)
+    shift = MAX_ROW;
+    for (int i = 0; i < MAX_ROW; i++) {
+        for (int j = 0; j < MAX_ROW - i; j++)
             std::cout << " ";
         bit = start;
         for (int j = 0; j <= i; j++) {
@@ -147,24 +164,24 @@ void ChineseCheckers::print_mask(BBType mask) {
                 std::cout << BLUE << FILL_CIRCLE << " " << RESET;
             else
                 std::cout << CIRCLE << " ";
-            bit = bit >> 7;
+            bit = bit >> (MAX_ROW - 1);
         }
         start = start << shift;
         std::cout << "\n";
     }
 
-    start = 1ULL << 57;
+    start = (uint128_t)1 << 110;
     shift = 1;
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < (MAX_ROW - 1); i++) {
         for (int j = 0; j <= i + 1; j++)
             std::cout << " ";
         bit = start;
-        for (int j = 7; j > i; j--) {
+        for (int j = (MAX_ROW - 1); j > i; j--) {
             if (mask & bit)
                 std::cout << BLUE << FILL_CIRCLE << " " << RESET;
             else
                 std::cout << CIRCLE << " ";
-            bit = bit >> 7;
+            bit = bit >> (MAX_ROW - 1);
         }
         start = start << shift;
         std::cout << "\n";
@@ -183,7 +200,7 @@ BBType shift(BBType source, int dir) {
 BBType ChineseCheckers::get_steps(const StateType::BoardType board,
                                   int source) const {
     BBType steps = 0;
-    BBType source_bit = 1ULL << source;
+    BBType source_bit = (uint128_t)1 << source;
     BBType occupied = board[Player::One] | board[Player::Two];
 
     for (int i = 0; i < 6; i++) {
@@ -227,9 +244,9 @@ int location_to_index(int location, int num_rows) {
     // Takes a bit location and returns its corresponding index in an array that
     // would represent the board with dimension num_rows.
 
-    location -= 9;
-    int row = (location / 8);
-    int col = location % 8;
+    location -= (MAX_ROW + 1);
+    int row = (location / MAX_ROW);
+    int col = location % MAX_ROW;
     int index = (row * num_rows) + col;
     return index;
 }
@@ -237,15 +254,15 @@ int location_to_index(int location, int num_rows) {
 int index_to_location(int index, int num_rows) {
     int row = index / num_rows;
     int col = index % num_rows;
-    int location = (row * 8) + col;
-    location += 9;
+    int location = (row * MAX_ROW) + col;
+    location += (MAX_ROW + 1);
     return location;
 }
 
 std::vector<ChineseCheckers::ActionType>
 ChineseCheckers::get_actions(const StateType &state) const {
     std::vector<ChineseCheckers::ActionType> actions;
-    BBType bit = 0ULL;
+    BBType bit = (uint128_t)0;
     std::vector<int> sources;
     if (state.get_player() == Player::One)
         sources = state.piece_locations[0];
@@ -259,7 +276,7 @@ ChineseCheckers::get_actions(const StateType &state) const {
         int base = location_to_index(s, num_rows_);
 
         // Collate all step actions
-        bit = 1ULL;
+        bit = (uint128_t)1;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & steps) {
                 int offset = location_to_index(i, num_rows_);
@@ -271,7 +288,7 @@ ChineseCheckers::get_actions(const StateType &state) const {
         }
 
         // Collate all step actions
-        bit = 1ULL;
+        bit = (uint128_t)1;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & hops) {
                 int offset = location_to_index(i, num_rows_);
@@ -292,7 +309,7 @@ ChineseCheckers::get_reverse_actions(const StateType &state) const {
     // StateType state_ = state;
     // state_.set_player(state.get_opponent());
     // actions = get_actions(state_);
-    BBType bit = 0ULL;
+    BBType bit = (uint128_t)0;
     std::vector<int> sources;
     int inverter = std::pow(state.get_num_cols(), 4) - 1;
     if (state.get_opponent() == Player::One)
@@ -307,7 +324,7 @@ ChineseCheckers::get_reverse_actions(const StateType &state) const {
         int base = location_to_index(s, num_rows_);
 
         // Collate all step actions
-        bit = 1ULL;
+        bit = (uint128_t)1;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & steps) {
                 int offset = location_to_index(i, num_rows_);
@@ -319,7 +336,7 @@ ChineseCheckers::get_reverse_actions(const StateType &state) const {
         }
 
         // Collate all step actions
-        bit = 1ULL;
+        bit = (uint128_t)1;
         for (int i = 0; i < sizeof(BBType) * 8; i++) {
             if (bit & hops) {
                 int offset = location_to_index(i, num_rows_);
@@ -353,8 +370,8 @@ int ChineseCheckers::apply_action(StateType &state, ActionType action) {
     // std::cout << start << "->" << end << std::endl;
 
     BBType source, destination;
-    source = 1ULL << start;
-    destination = 1ULL << end;
+    source = (uint128_t)1 << start;
+    destination = (uint128_t)1 << end;
 
     ChineseCheckersState::BoardType board = state.get_board();
     board[state.get_player()] &= ~source;
@@ -373,8 +390,8 @@ int ChineseCheckers::undo_action(StateType &state, ActionType action) {
     // std::cout << start << "->" << end << std::endl;
 
     BBType source, destination;
-    source = 1ULL << start;
-    destination = 1ULL << end;
+    source = (uint128_t)1 << start;
+    destination = (uint128_t)1 << end;
 
     ChineseCheckersState::BoardType board = state.get_board();
     board[state.get_opponent()] &= ~source;

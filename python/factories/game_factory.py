@@ -15,7 +15,7 @@ class GameFactory:
     def __call__(self, module_name_str: str) -> ModuleType:
         try:
             game_module = importlib.import_module(
-                "wrappers." + module_name_str + "_wrapper"
+                "python.wrappers." + module_name_str + "_wrapper"
             )
         except ModuleNotFoundError:
             print("Game not found.", file=sys.stderr)

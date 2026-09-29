@@ -7,9 +7,10 @@
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
     echo "Setting up SOCKS5 proxy..."
-    ssh -q -N -T -f -D 8888 $(echo $SSH_CONNECTION | cut -d " " -f 3)
+    ssh -q -N -T -f -D 8888 `echo $SSH_CONNECTION | cut -d " " -f 3`
     export ALL_PROXY=socks5h://localhost:8888
 fi
+
 
 # Setup modules
 module load python/3.11
@@ -20,7 +21,7 @@ python -m venv pyenv
 . pyenv/bin/activate
 git clone ~/node_arena
 cd node_arena
-pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind matplotlib --no-index
+pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind --no-index
 cmake -S . -B build
 cmake --build build
 
@@ -33,9 +34,6 @@ BASE_CONFIG="${GAME}_${SIZE//,/_}"
 CONFIG_TEMPLATE_DIR=$3
 SEED=$SLURM_ARRAY_TASK_ID
 
-OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}/${BASE_CONFIG}/seed_$SEED"
+OUTPUT_DIR="${HOME}/scratch/bd_alpha_zero/${GAME}/${BASE_CONFIG}/seed_$SEED"
 
-echo "Starting training on ${GAME}..."
-echo "Outputting to ${OUTPUT_DIR}"
-
-python python/algorithms/alpha_zero/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED
+python python/algorithms/bidirectional_alpha_zero/run_bd_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED

@@ -12,6 +12,7 @@
 #define FILL_CIRCLE     "\u25CF"
 #define CIRCLE          "\u25EF"
 #define CROSS           "\u03A7"
+#define MULTIPLIER      "\u2716"
 #define NAUGHT          "\u2B58"
 #define DOT             "\u22C5"
 

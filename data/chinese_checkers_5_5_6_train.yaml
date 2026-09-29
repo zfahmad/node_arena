@@ -1,0 +1,51 @@
+game:
+  type_: "chinese_checkers"
+  params: [5, 5, 6]
+  size: [5, 5, 6]
+  initial_state: ""
+
+master_seed: 0
+num_procs: 64
+max_turns: 70
+num_iterations: 30000
+
+player:
+  type_: "puct"
+  server: "s1"
+  params:
+    seed: 0
+    num_samples: 32
+    gamma: 1.0
+    exploitation_threshold: 1
+    training: True
+    dirichlet_epsilon: 0.25
+    dirichlet_alpha: 0.1
+    tree_policy:
+      seed:
+      C: 1.0
+    final_policy:
+      seed:
+
+inference_servers: [{
+    name: "s1",
+    type_: "puct",
+    ckpt_dir: "",
+    batch_size: 32,
+    model_cfg: {
+        name: "ResNet",
+        hypers: {
+            dims: [5, 5, 6],
+            num_blocks: 4
+        }
+    }
+  }]
+
+learner:
+  batch_size: 32
+  buffer_size: 1000
+  save_interval: 5000
+  archive_dir:
+  optimizer:
+    name: "adam"
+    kwargs:
+      learning_rate: 0.001

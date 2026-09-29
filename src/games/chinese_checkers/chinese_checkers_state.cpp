@@ -6,18 +6,20 @@
 #include <games/chinese_checkers/chinese_checkers_state.hpp>
 #include <iomanip>
 #include <iostream>
+#include <ranges>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 using BoardType = ChineseCheckersState::BoardType;
 using BBType = ChineseCheckersState::BBType;
 
 ChineseCheckersState::ChineseCheckersState(int num_rows, int num_cols,
                                            int num_pieces) {
-    if ((num_rows < 3) || (num_rows > 6) || (num_cols < 3) || (num_cols > 6)) {
+    if ((num_rows < 3) || (num_rows > 9) || (num_cols < 3) || (num_cols > 9)) {
         throw std::invalid_argument(
-            "Board dimensions must be valid sizes between 3 and 7.");
+            "Board dimensions must be valid sizes between 3 and 9.");
     }
 
     this->num_rows_ = num_rows;
@@ -37,7 +39,7 @@ void ChineseCheckersState::print_board() {
     BBType start = 2;
     BBType bit;
 
-    shift = 8;
+    shift = MAX_ROW;
     for (int i = 0; i < num_rows_; i++) {
         for (int j = 0; j < num_rows_ - i; j++)
             std::cout << " ";
@@ -50,7 +52,7 @@ void ChineseCheckersState::print_board() {
                 std::cout << RED << FILL_CIRCLE << " " << RESET;
             else
                 std::cout << CIRCLE << " ";
-            bit = bit >> 7;
+            bit = bit >> (MAX_ROW - 1);
         }
         std::cout << "\n";
     }
@@ -68,7 +70,7 @@ void ChineseCheckersState::print_board() {
                 std::cout << RED << FILL_CIRCLE << " " << RESET;
             else
                 std::cout << CIRCLE << " ";
-            bit = bit >> 7;
+            bit = bit >> (MAX_ROW - 1);
         }
         std::cout << "\n";
     }
@@ -76,7 +78,7 @@ void ChineseCheckersState::print_board() {
 }
 
 int base_height(int num_pieces) {
-    int height = (int)std::ceil((std::sqrt(1 + 8.0 * num_pieces) - 1) / 2);
+    int height = (int)std::ceil((std::sqrt(1 + (MAX_ROW)*num_pieces) - 1) / 2);
     return height;
 }
 
@@ -91,13 +93,13 @@ std::vector<std::vector<uint8_t>> ChineseCheckersState::to_array() {
         std::vector<uint8_t> player_arr;
         player_arr.reserve(num_cols_ * num_rows_);
         BBType bits = board_[p];
-        bits = bits >> 9;
+        bits = bits >> (MAX_ROW + 1);
         for (int i = 0; i < num_rows_; i++) {
             for (int j = 0; j < num_cols_; j++) {
                 player_arr.push_back(bits & 1);
                 bits = bits >> 1;
             }
-            bits = bits >> (8 - num_rows_);
+            bits = bits >> (MAX_ROW - num_rows_);
         }
         if (get_player() == Player::Two)
             std::reverse(player_arr.begin(), player_arr.end());
@@ -108,7 +110,7 @@ std::vector<std::vector<uint8_t>> ChineseCheckersState::to_array() {
 
 std::vector<int> get_player_locations(ChineseCheckersState::BBType board) {
     std::vector<int> locations;
-    ChineseCheckersState::BBType bit = 1ULL;
+    ChineseCheckersState::BBType bit = (uint128_t)1;
 
     for (int i = 0; i < (sizeof(ChineseCheckersState::BBType) * 8); i++) {
         if (bit & board)
@@ -150,12 +152,12 @@ std::string ChineseCheckersState::to_string() {
     // Last character is the current player at the state.
     std::string state_str = "";
 
-    std::stringstream stream;
-    stream << std::hex << std::setfill('0') << std::setw(2 * sizeof(BBType))
-           << board_[Player::One];
-    stream << std::hex << std::setfill('0') << std::setw(2 * sizeof(BBType))
-           << board_[Player::Two];
-    state_str += stream.str();
+    for (int i = 0; i < 2; i++) {
+        state_str += std::to_string(piece_locations[i][0]);
+        for (int j = 1; j < num_pieces_; j++)
+            state_str += "," + std::to_string(piece_locations[i][j]);
+        state_str += "|";
+    }
 
     if (player_ == Player::One)
         state_str += "0";
@@ -167,29 +169,46 @@ std::string ChineseCheckersState::to_string() {
     return state_str;
 }
 
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        tokens.push_back(item);
+    }
+    return tokens;
+}
+
 void ChineseCheckersState::from_string(std::string state_str) {
-    const char *data = state_str.data();
-    auto r1 = std::from_chars(data, data + 16, board_[Player::One], 16);
-    auto r2 = std::from_chars(data + 16, data + 32, board_[Player::Two], 16);
+    std::vector<std::string> parts = split(state_str, '|');
+    std::cout << parts[0] << " " << parts[1] << " " << parts[2] << std::endl;
+    BBType bb_1 = (uint128_t)0, bb_2 = (uint128_t)0;
 
-    assert((!(board_[Player::One] & board_[Player::Two])) &&
-           "State has overlapping pieces.");
-    int p1_num_pieces = num_pieces(board_[Player::One]);
-    assert(p1_num_pieces == num_pieces(board_[Player::Two]));
-    this->num_rows_ = state_str[33] - '0';
-    this->num_cols_ = state_str[34] - '0';
-    assert((this->num_rows_ >= 4) & (this->num_rows_ <= 7) &
-               !(this->num_rows_ % 2) &&
-           "Invalid number of rows: Must be between 4 and 7.");
-    assert((this->num_cols_ >= 4) & (this->num_cols_ <= 7) &
-               !(this->num_cols_ % 2) &&
-           "Invalid number of columns: Must be between 4 and 7.");
-    this->num_pieces_ = p1_num_pieces;
+    // int i = 0;
+    for (auto loc : split(parts[0], ',')) {
+        // piece_locations[0][i] = std::stoi(loc);
+        std::cout << std::stoi(loc) << " ";
+        bb_1 += (((uint128_t)1 << std::stoi(loc)));
+        // i++;
+    }
+    std::cout << "\n";
 
-    std::vector<std::vector<int>> locations;
-    locations.push_back(get_player_locations(board_[Player::One]));
-    locations.push_back(get_player_locations(board_[Player::Two]));
-    this->piece_locations = locations;
+    // i = 0;
+    for (auto loc : split(parts[1], ',')) {
+        // piece_locations[1][i] = std::stoi(loc);
+        std::cout << std::stoi(loc) << " ";
+        bb_2 += ((uint128_t)1 << std::stoi(loc));
+        // i++;
+    }
+    std::cout << "\n";
+    set_board(BoardType({bb_1, bb_2}));
+
+    this->num_rows_ = parts[2][1] - '0';
+    this->num_cols_ = parts[2][2] - '0';
+    if (parts[2][0] == '0')
+        set_player(Player::One);
+    else
+        set_player(Player::Two);
 }
 
 int ChineseCheckersState::num_pieces(BBType board) const {
@@ -202,44 +221,67 @@ int ChineseCheckersState::num_pieces(BBType board) const {
     return count;
 }
 
-BoardType ChineseCheckersState::reflect_vertical(BoardType board) {
-    BoardType new_board = board;
-    BoardType temp;
+// BoardType ChineseCheckersState::reflect_vertical(BoardType board) {
+//     BoardType new_board = board;
+//     BoardType temp;
+//
+//     std::vector<Player> players;
+//     players.push_back(Player::One);
+//     players.push_back(Player::Two);
+//
+//     for (Player player : players) {
+//         temp[player] = (new_board[player] ^ (new_board[player] >> 7)) &
+//                        0x00AA00AA00AA00AAULL;
+//         new_board[player] ^= temp[player] ^ (temp[player] << 7);
+//         temp[player] = (new_board[player] ^ (new_board[player] >> 14)) &
+//                        0x0000CCCC0000CCCCULL;
+//         new_board[player] ^= temp[player] ^ (temp[player] << 14);
+//         temp[player] = (new_board[player] ^ (new_board[player] >> 28)) &
+//                        0x00000000F0F0F0F0ULL;
+//         new_board[player] ^= temp[player] ^ (temp[player] << 28);
+//     }
+//
+//     return new_board;
+// }
 
-    std::vector<Player> players;
-    players.push_back(Player::One);
-    players.push_back(Player::Two);
+BoardType ChineseCheckersState::reflect_vertical(BoardType board) {
+    static constexpr int N = 11;
+    BoardType new_board = board;
+    std::vector<Player> players = {Player::One, Player::Two};
 
     for (Player player : players) {
-        temp[player] = (new_board[player] ^ (new_board[player] >> 7)) &
-                       0x00AA00AA00AA00AAULL;
-        new_board[player] ^= temp[player] ^ (temp[player] << 7);
-        temp[player] = (new_board[player] ^ (new_board[player] >> 14)) &
-                       0x0000CCCC0000CCCCULL;
-        new_board[player] ^= temp[player] ^ (temp[player] << 14);
-        temp[player] = (new_board[player] ^ (new_board[player] >> 28)) &
-                       0x00000000F0F0F0F0ULL;
-        new_board[player] ^= temp[player] ^ (temp[player] << 28);
-    }
+        uint128_t src = board[player];
+        uint128_t dst = 0;
 
+        for (int r = 0; r < N; ++r) {
+            uint128_t row = (src >> (r * N)) & (((uint128_t)1 << N) - 1);
+            while (row) {
+                int c = __builtin_ctzll(
+                    (unsigned long long)row); // safe: row fits in 11 bits
+                dst |= ((uint128_t)1 << (c * N + r));
+                row &= row - 1;
+            }
+        }
+        new_board[player] = dst;
+    }
     return new_board;
 }
 
 BoardType ChineseCheckersState::flip_board(BoardType board) {
     // Rotates the board 180
-    BoardType new_board = BoardType({0ULL, 0ULL});
+    BoardType new_board = BoardType({(uint128_t)0, (uint128_t)0});
     BoardType temp = board;
-    BBType bit = 1ULL;
+    BBType bit = (uint128_t)1;
 
     std::vector<Player> players;
     players.push_back(Player::One);
     players.push_back(Player::Two);
 
-    int offset = (6 - this->num_rows_);
+    int offset = (9 - this->num_rows_);
     for (Player player : players) {
-        temp[player] <<= (offset * 9);
+        temp[player] <<= (offset * 12);
 
-        for (int i = 0; i < 64; i++) {
+        for (int i = 0; i < 121; i++) {
             new_board[player] |= (temp[player] & bit);
             temp[player] >>= 1;
             new_board[player] <<= 1;
@@ -259,14 +301,17 @@ std::array<BBType, 2> ChineseCheckersState::canonical_form() {
         board = flip_board(board);
     symmetries.push_back({board[Player::One], board[Player::Two]});
 
-    // transformed_board = reflect_vertical(board);
-    // symmetries.push_back({transformed_board[Player::One], transformed_board[Player::Two]});
+    transformed_board = reflect_vertical(board);
+    symmetries.push_back({transformed_board[Player::One],
+    transformed_board[Player::Two]});
 
-    std::array<BBType, 2> canonical = *std::min_element(symmetries.begin(), symmetries.end());
+    std::array<BBType, 2> canonical =
+        *std::min_element(symmetries.begin(), symmetries.end());
     return canonical;
 }
 
-void ChineseCheckersState::from_canonical_form(std::array<BBType, 2> canonical_state) {
+void ChineseCheckersState::from_canonical_form(
+    std::array<BBType, 2> canonical_state) {
     // The canonical form of Chinese checkers states view states from the
     // perspective of the first player.
     // Loading a state from its canonical form also sets the first player as
