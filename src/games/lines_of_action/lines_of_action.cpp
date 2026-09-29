@@ -4,6 +4,7 @@
 #include <games/lines_of_action/lines_of_action.hpp>
 #include <games/lines_of_action/lines_of_action_state.hpp>
 #include <iostream>
+#include <bit>
 
 // TODO: Currently the game does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
