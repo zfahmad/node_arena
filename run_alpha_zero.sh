@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --array=0-4
+#SBATCH --array=2-7
 #SBATCH --cpus-per-task=20
 #SBATCH --mem-per-cpu=8G
-#SBATCH --time=20:00:00
+#SBATCH --time=12:00:00
 
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
@@ -22,7 +22,7 @@ python -m venv pyenv
 . pyenv/bin/activate
 git clone ~/node_arena
 cd node_arena
-pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind --no-index
+pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind matplotlib --no-index
 cmake -S . -B build
 cmake --build build
 
@@ -37,5 +37,8 @@ CONFIG_TEMPLATE_DIR=$3
 SEED=$SLURM_ARRAY_TASK_ID
 
 OUTPUT_DIR="${HOME}/scratch/alpha_zero/${GAME}/${BASE_CONFIG}/seed_$SEED"
+
+echo "Starting training on ${GAME}..."
+echo "Outputting to ${OUTPUT_DIR}"
 
 python python/algorithms/alpha_zero/run_alpha_zero.py $GAME $SIZE $OUTPUT_DIR --base-train-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_train.yaml --base-eval-config=$CONFIG_TEMPLATE_DIR/${BASE_CONFIG}_eval.yaml --seed=$SEED

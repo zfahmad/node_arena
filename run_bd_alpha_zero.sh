@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --array=0-4
+#SBATCH --array=0-7
 #SBATCH --cpus-per-task=20
 #SBATCH --mem-per-cpu=8G
-#SBATCH --time=20:00:00
+#SBATCH --time=12:00:00
 
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
