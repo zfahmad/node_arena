@@ -181,26 +181,21 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 void ChineseCheckersState::from_string(std::string state_str) {
     std::vector<std::string> parts = split(state_str, '|');
-    std::cout << parts[0] << " " << parts[1] << " " << parts[2] << std::endl;
     BBType bb_1 = (uint128_t)0, bb_2 = (uint128_t)0;
 
     // int i = 0;
     for (auto loc : split(parts[0], ',')) {
         // piece_locations[0][i] = std::stoi(loc);
-        std::cout << std::stoi(loc) << " ";
         bb_1 += (((uint128_t)1 << std::stoi(loc)));
         // i++;
     }
-    std::cout << "\n";
 
     // i = 0;
     for (auto loc : split(parts[1], ',')) {
         // piece_locations[1][i] = std::stoi(loc);
-        std::cout << std::stoi(loc) << " ";
         bb_2 += ((uint128_t)1 << std::stoi(loc));
         // i++;
     }
-    std::cout << "\n";
     set_board(BoardType({bb_1, bb_2}));
 
     this->num_rows_ = parts[2][1] - '0';
