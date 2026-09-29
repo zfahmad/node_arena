@@ -15,7 +15,6 @@ fi
 # Setup modules
 module load python/3.11
 
-
 # Setup Python environments
 cd $SLURM_TMPDIR
 python -m venv pyenv
@@ -25,7 +24,6 @@ cd node_arena
 pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind --no-index
 cmake -S . -B build
 cmake --build build
-
 
 export PYTHONPATH=${SLURM_TMPDIR}/node_arena
 export XLA_PYTHON_CLIENT_MEMORY_PREALLOC=false

@@ -19,9 +19,10 @@ int main(int argc, char **argv) {
     // state.print_board();
     //
     // state.from_string("0000000010210000 0000000000000000 044");
-    // state.from_string("00000000005095800000000000a72020044");
+    state.from_string("00000000005095800000000000a72020044");
     // state.from_string("0000000350200200000000048b008000055");
-    state.print_board();
+    std::cout << static_cast<int>(state.get_player()) << std::endl;
+    // state.print_board();
     ConnectFour game = ConnectFour();
     game.reset(state);
     // std::cout << game.is_draw(state) << std::endl;
@@ -33,14 +34,24 @@ int main(int argc, char **argv) {
     // std::cout << compact[0] << " " << compact[1] << std::endl;
 
     std::vector<int> actions = game.get_actions(state);
-    for (int action : actions)
-        std::cout << action << " ";
-    std::cout << std::endl;
-    game.apply_action(state, 1);
+    // for (int action : actions)
+    //     std::cout << action << " ";
+    // std::cout << std::endl;
+    state = game.get_next_state(state, 1);
     state.print_board();
     actions = game.get_actions(state);
-    game.apply_action(state, 1);
+    state = game.get_next_state(state, 1);
     state.print_board();
+
+    actions = game.get_actions(state);
+    for (auto a : actions)
+        std::cout << a << " ";
+    std::cout << "\n";
+
+    actions = game.get_reverse_actions(state);
+    for (auto a : actions)
+        std::cout << a << " ";
+    std::cout << std::endl;
     // game.undo_action(state, 1);
     // state.print_board();
     // state.set_board(ConnectFourState::BoardType({0, 0}));

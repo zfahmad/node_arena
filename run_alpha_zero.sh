@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --array=2-7
+#SBATCH --array=0-7
 #SBATCH --cpus-per-task=20
 #SBATCH --mem-per-cpu=8G
 #SBATCH --time=12:00:00
@@ -7,14 +7,12 @@
 # SOCKS5 proxy
 if [ "$SLURM_TMPDIR" != "" ]; then
     echo "Setting up SOCKS5 proxy..."
-    ssh -q -N -T -f -D 8888 `echo $SSH_CONNECTION | cut -d " " -f 3`
+    ssh -q -N -T -f -D 8888 $(echo $SSH_CONNECTION | cut -d " " -f 3)
     export ALL_PROXY=socks5h://localhost:8888
 fi
 
-
 # Setup modules
 module load python/3.11
-
 
 # Setup Python environments
 cd $SLURM_TMPDIR
@@ -25,7 +23,6 @@ cd node_arena
 pip install jax==0.8.2 jaxlib==0.8.2 numpy flax chex orbax-checkpoint optax h5py docopt nanobind matplotlib --no-index
 cmake -S . -B build
 cmake --build build
-
 
 export PYTHONPATH=${SLURM_TMPDIR}/node_arena
 export XLA_PYTHON_CLIENT_MEMORY_PREALLOC=false

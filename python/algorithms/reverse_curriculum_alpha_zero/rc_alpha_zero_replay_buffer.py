@@ -174,3 +174,22 @@ class ReplayBuffer:
 
         t = threading.Thread(target=loop, daemon=True)
         t.start()
+
+
+if __name__ == "__main__":
+    data_dir: str = "/Users/zaheen/Documents/node_arena/az_test"
+    rb = ReplayBuffer(0, data_dir, 32, 100)
+    rb.start_indexing_thread()
+    print(rb.file_idx.files)
+    # print(rb.file_idx.num_states)
+    time.sleep(6)
+    for _ in range(5):
+        batch = rb.get_next_batch()
+        print(batch.states.shape)
+        print(batch.values.shape)
+        print(batch.dense_policy.policy.shape)
+    for file in os.listdir(f"{data_dir}/archive"):
+        os.rename(
+            f"{data_dir}/archive/{file}",
+            f"{data_dir}/self_play/{file}",
+        )

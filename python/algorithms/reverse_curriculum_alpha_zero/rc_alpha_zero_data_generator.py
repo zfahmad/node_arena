@@ -1,20 +1,12 @@
-from copy import deepcopy
-
 import h5py
-import numpy as np
-from collections import deque
-
-from python.game_protocols import ActionType, GameProtocol, StateProtocol
+from python.game_protocols import GameProtocol, StateProtocol
 from python.players.player_protocols import PlayerProtocol
+import numpy as np
 
-
-class RetrogradeDataGenerator:
-    def __init__(
-        self, max_turns: int, player: PlayerProtocol, initial_state: StateProtocol
-    ):
+class DataGenerator:
+    def __init__(self, max_turns: int, player: PlayerProtocol):
         self.max_turns: int = max_turns
         self.player: PlayerProtocol = player
-        self.initial_state: StateProtocol = initial_state
 
     def write_data(self, output_path, state_arrs, masks, policies, values):
         f = h5py.File(output_path, "w")
@@ -24,33 +16,11 @@ class RetrogradeDataGenerator:
         f.create_dataset("values", data=values)
         f.close()
 
-    def retrograde_play(
-        self, game: GameProtocol, state: StateProtocol
-    ) -> tuple[list[StateProtocol], list[int]]:
-        length = np.random.randint(1, self.max_turns + 1)
-        steps = 0
-        traj_states = deque([state])
-        traj_actions = deque([])
-
-        while (state != self.initial_state) and (length > steps):
-            reverse_actions = game.get_reverse_actions(state)
-            while True:
-                action = np.random.choice(reverse_actions)
-                prev_state = game.get_previous_state(state, action)
-                if not game.is_terminal(prev_state):
-                    state = prev_state
-                    traj_states.append(state)
-                    traj_actions.append(action)
-                    break
-            steps += 1
-
-        return list(traj_states), list(traj_actions)
-
     # NOTE: CURRENTLY ONLY HANDLES PUCT!!!
     def play(
         self,
         game: GameProtocol,
-        terminal_state: StateProtocol,
+        state: StateProtocol,
         output_path: str = "",
     ) -> None:
         game_data_dict: dict = {
@@ -62,9 +32,6 @@ class RetrogradeDataGenerator:
         states: list[StateProtocol] = []
         masks = []
         policies = []
-        traj_states, traj_actions = self.retrograde_play(game, terminal_state)
-
-        state = traj_states.pop()
 
         # Begin playing loop
         while (not game.is_terminal(state)) and (current_turn < self.max_turns):
@@ -74,17 +41,15 @@ class RetrogradeDataGenerator:
             mask = game.legal_moves_mask(state)
             policy = np.zeros_like(mask)
             masks.append(mask)
-            action = traj_actions.pop()
-            policy[action] = 1.0
-            # for edge in root.edges:
-            #     policy[edge.action] = edge.N
-            # temp = 1.0
-            # if current_turn >= self.player.exploitation_threshold:  # type: ignore
-            #     temp = 0.0
-            # action = self.player.final_policy(root.edges, temp).action  # type: ignore
-            # if temp == 1.0:
-            #     policy = policy ** (1 / temp)
-            # policy = policy / policy.sum()
+            for edge in root.edges:
+                policy[edge.action] = edge.N
+            temp = 1.0
+            if current_turn >= self.player.exploitation_threshold:  # type: ignore
+                temp = 0.0
+            action = self.player.final_policy(root.edges, temp).action  # type: ignore
+            if temp == 1.0:
+                policy = policy ** (1 / temp)
+            policy = policy / policy.sum()
             policies.append(policy)
 
             turn = {
@@ -94,8 +59,7 @@ class RetrogradeDataGenerator:
             }
             turns.append(turn)
 
-            # state = game.get_next_state(state, action)
-            state = traj_states.pop()
+            state = game.get_next_state(state, action)
             current_turn += 1
 
         turn = {
