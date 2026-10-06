@@ -3,6 +3,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/operators.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -24,7 +25,8 @@ NB_MODULE(othello_wrapper, m) {
         .def("from_string", &OthelloState::from_string)
         .def("get_player", &OthelloState::get_player)
         .def("get_opponent", &OthelloState::get_opponent)
-        .def("set_player", &OthelloState::set_player);
+        .def("set_player", &OthelloState::set_player)
+        .def(nb::self == nb::self);
     state_class.attr("Player") = m.attr("Player");
 
     nb::enum_<Othello::Outcomes>(m, "Outcomes")

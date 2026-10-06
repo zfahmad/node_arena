@@ -31,6 +31,7 @@ public:
 
     std::array<BBType, 2> canonical_form();
     BoardType reflect_vertical(BoardType board);
+    bool operator==(const ConnectFourState&) const = default;
 
 protected:
     BoardType board_ = BoardType();

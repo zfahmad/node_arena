@@ -14,7 +14,7 @@ public:
     using BBType = std::uint64_t;
     using BoardType = PlayerIndexed<BBType, Player>;
 
-    LinesOfActionState(int num_rows = 8) : num_rows_ ( num_rows ) {};
+    LinesOfActionState(int num_rows = 8) : num_rows_(num_rows) {};
     void print_board();
     const BoardType &get_board() const { return {board_}; }
     void set_board(BoardType board);

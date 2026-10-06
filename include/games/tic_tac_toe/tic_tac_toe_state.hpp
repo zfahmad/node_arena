@@ -35,6 +35,8 @@ public:
     BoardType rot_90(BoardType board);
     BoardType rot_270(BoardType board);
 
+    bool operator==(const TicTacToeState&) const = default;
+
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;

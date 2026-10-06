@@ -3,6 +3,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/operators.h>
 
 namespace nb = nanobind;
 
@@ -23,7 +24,8 @@ NB_MODULE(tic_tac_toe_wrapper, m) {
         .def("from_string", &TicTacToeState::from_string)
         .def("get_player", &TicTacToeState::get_player)
         .def("get_opponent", &TicTacToeState::get_opponent)
-        .def("set_player", &TicTacToeState::set_player);
+        .def("set_player", &TicTacToeState::set_player)
+        .def(nb::self == nb::self);
     state_class.attr("Player") = m.attr("Player");
 
     nb::enum_<TicTacToe::Outcomes>(m, "Outcomes")

@@ -28,6 +28,8 @@ public:
     int get_num_rows() const { return num_rows_; }
     int num_pieces(BBType board) const;
 
+    bool operator==(const OthelloState&) const = default;
+
 protected:
     BoardType board_ = BoardType();
     Player player_ = Player::One;

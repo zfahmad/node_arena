@@ -20,7 +20,7 @@ BBType generate_destinations_mask(int num_rows, int num_cols) {
     BBType empty = ((uint128_t)1 << num_cols) - 1;
     empty = empty << (MAX_ROW + 1);
     for (int i = 0; i < num_rows; i++) {
-        mask = mask ^ empty;
+        mask &= ~empty;
         empty = empty << MAX_ROW;
     }
     return mask;
@@ -53,7 +53,8 @@ std::vector<std::vector<int>> get_initial_piece_locs(int num_rows,
 
     i = 0;
     int offset = (MAX_ROW + 1) - num_rows;
-    int final_bit = 108 - (offset * 122);
+    // int final_bit = 108 - (offset * 122);
+    int final_bit = (MAX_ROW + 1) * (num_rows + 1);
 
     do {
         player_locations.push_back(final_bit -
@@ -87,18 +88,22 @@ BBType generate_empties_mask(int num_rows, int num_cols, int num_pieces) {
     }
 
     if ((num_rows == 7) && (num_pieces < 7)) {
-        BBType outside = ((uint128_t)1 << 5) + ((uint128_t)1 << 6) + ((uint128_t)1 << 7) +
-                         ((uint128_t)1 << 19) + ((uint128_t)1 << 30) + ((uint128_t)1 << 41) +
-                         ((uint128_t)1 << 55) + ((uint128_t)1 << 66) + ((uint128_t)1 << 77) +
-                         ((uint128_t)1 << 89) + ((uint128_t)1 << 90) + ((uint128_t)1 << 91);
+        BBType outside =
+            ((uint128_t)1 << 5) + ((uint128_t)1 << 6) + ((uint128_t)1 << 7) +
+            ((uint128_t)1 << 19) + ((uint128_t)1 << 30) + ((uint128_t)1 << 41) +
+            ((uint128_t)1 << 55) + ((uint128_t)1 << 66) + ((uint128_t)1 << 77) +
+            ((uint128_t)1 << 89) + ((uint128_t)1 << 90) + ((uint128_t)1 << 91);
         mask = mask ^ outside;
     }
 
     if (num_rows == 9) {
-        BBType outside = ((uint128_t)1 << 6) + ((uint128_t)1 << 7) + ((uint128_t)1 << 8) + ((uint128_t)1 << 9) +
-                         ((uint128_t)1 << 21) + ((uint128_t)1 << 32) + ((uint128_t)1 << 43) + ((uint128_t)1 << 54) +
-                         ((uint128_t)1 << 66) + ((uint128_t)1 << 77) + ((uint128_t)1 << 88) + ((uint128_t)1 << 99) +
-                         ((uint128_t)1 << 111) + ((uint128_t)1 << 112) + ((uint128_t)1 << 113) + ((uint128_t)1 << 114);
+        BBType outside =
+            ((uint128_t)1 << 6) + ((uint128_t)1 << 7) + ((uint128_t)1 << 8) +
+            ((uint128_t)1 << 9) + ((uint128_t)1 << 21) + ((uint128_t)1 << 32) +
+            ((uint128_t)1 << 43) + ((uint128_t)1 << 54) + ((uint128_t)1 << 66) +
+            ((uint128_t)1 << 77) + ((uint128_t)1 << 88) + ((uint128_t)1 << 99) +
+            ((uint128_t)1 << 111) + ((uint128_t)1 << 112) +
+            ((uint128_t)1 << 113) + ((uint128_t)1 << 114);
         mask = mask ^ outside;
     }
     return mask;
@@ -170,7 +175,7 @@ void ChineseCheckers::print_mask(BBType mask) {
         std::cout << "\n";
     }
 
-    start = (uint128_t)1 << 110;
+    start = (uint128_t)1 << (MAX_ROW * (MAX_ROW - 1) + 1);
     shift = 1;
     for (int i = 0; i < (MAX_ROW - 1); i++) {
         for (int j = 0; j <= i + 1; j++)
@@ -199,7 +204,7 @@ BBType shift(BBType source, int dir) {
 
 BBType ChineseCheckers::get_steps(const StateType::BoardType board,
                                   int source) const {
-    BBType steps = 0;
+    BBType steps = (uint128_t)0;
     BBType source_bit = (uint128_t)1 << source;
     BBType occupied = board[Player::One] | board[Player::Two];
 
@@ -214,7 +219,7 @@ BBType ChineseCheckers::get_steps(const StateType::BoardType board,
 
 BBType ChineseCheckers::is_hop(StateType::BoardType board, BBType source_bits,
                                int dir) const {
-    BBType hop = 0;
+    BBType hop = (uint128_t)0;
     BBType occupied = board[Player::One] | board[Player::Two];
 
     hop = occupied & shift(source_bits, dir);
@@ -223,21 +228,37 @@ BBType ChineseCheckers::is_hop(StateType::BoardType board, BBType source_bits,
     return hop;
 }
 
+// BBType ChineseCheckers::get_hops(StateType::BoardType board, int source)
+// const {
+//     BBType hops = (uint128_t)0;
+//     BBType source_bit = (uint128_t)1;
+//     source_bit = source_bit << source;
+//     BBType new_hops = source_bit;
+//     BBType occupied = board[Player::One] | board[Player::Two];
+//
+//     while (new_hops != hops) {
+//         hops = new_hops;
+//         for (int dir = 0; dir < 6; dir++) {
+//             new_hops = new_hops | is_hop(board, hops, dir);
+//         }
+//     }
+//     hops = hops & ~(this->destinations_mask | occupied);
+//     return hops;
+// }
+
 BBType ChineseCheckers::get_hops(StateType::BoardType board, int source) const {
-    BBType hops = 0;
-    BBType source_bit = 1;
-    source_bit = source_bit << source;
-    BBType new_hops = source_bit;
+    BBType source_bit = (uint128_t)1 << source;
+    board[Player::One] &= ~source_bit; // the moving piece isn't an obstacle
+    board[Player::Two] &= ~source_bit;
     BBType occupied = board[Player::One] | board[Player::Two];
 
+    BBType hops = (uint128_t)0, new_hops = source_bit;
     while (new_hops != hops) {
         hops = new_hops;
-        for (int dir = 0; dir < 6; dir++) {
-            new_hops = new_hops | is_hop(board, hops, dir);
-        }
+        for (int dir = 0; dir < 6; dir++)
+            new_hops |= is_hop(board, hops, dir);
     }
-    hops = hops & ~(this->destinations_mask | occupied);
-    return hops;
+    return hops & ~(this->destinations_mask | occupied | source_bit);
 }
 
 int location_to_index(int location, int num_rows) {
@@ -362,6 +383,15 @@ int ChineseCheckers::apply_action(StateType &state, ActionType action) {
     // - is the action one for the current player?
     // - does the source piece exist?
     // - is the destination location available?
+    assert(action >= 0 &&
+           action < num_rows_ * num_rows_ * num_rows_ * num_rows_);
+    assert(num_rows_ == state.get_num_rows());
+    assert((state.get_board()[state.get_player()] >> start) &
+           1); // source piece exists
+    assert(
+        !(((state.get_board()[Player::One] | state.get_board()[Player::Two]) >>
+           end) &
+          1)); // dest empty
 
     int base = action / (num_rows_ * num_rows_);
     int offset = action % (num_rows_ * num_rows_);
@@ -378,6 +408,12 @@ int ChineseCheckers::apply_action(StateType &state, ActionType action) {
     board[state.get_player()] |= destination;
 
     state.set_board(board);
+
+    BBType both = board[Player::One] | board[Player::Two];
+    assert((both & destinations_mask) == 0); // nothing outside the n x n block
+    assert(popcount128(board[Player::One]) ==
+           initial_count_one); // piece counts unchanged
+    assert(popcount128(board[Player::Two]) == initial_count_two);
 
     return 0;
 }
