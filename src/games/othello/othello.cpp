@@ -1,6 +1,7 @@
 #include <cassert>
 #include <games/othello/othello.hpp>
 #include <games/othello/othello_state.hpp>
+#include <iostream>
 
 // TODO: Currently Othello does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
@@ -85,22 +86,21 @@ Othello::get_actions(const StateType &state) const {
         bit = (bit << 1);
     }
 
+    if (actions.size() == 0)
+        actions.push_back(-1);
+
     return actions;
 }
 
 bool Othello::has_actions(const StateType &state) {
-    return get_actions(state).size() > 0;
+    return !(get_actions(state)[0] == -1);
 }
 
 // TODO: Add checks for both apply_action and undo_action to ensure actions are
 // valid.
 int Othello::apply_action(StateType &state, ActionType action) {
-    // Adds a new piece to the column denoted by action
-
-    // Move piece to column
-    assert(((action > 0) ||
-            (action < state.get_num_rows() * state.get_num_cols())) &&
-           "Invalid action!");
+    if (action == -1)
+        return 0;
 
     BBType bit, bounding_disk;
     BBType captured = 0ULL;
@@ -149,7 +149,7 @@ bool Othello::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for the player passed as an argument
 
     // Check if state is terminal
-    if (is_terminal(state))
+    if (!is_terminal(state))
         return false;
 
     Player opponent = ((player == Player::One) ? Player::Two : Player::One);
@@ -180,7 +180,14 @@ bool Othello::is_terminal(const StateType &state) {
     tmp_state.set_player(state.get_opponent());
     bool player_actions = has_actions(state);
     bool opponent_actions = has_actions(tmp_state);
-    if (!player_actions)
+
+    // Player player = state.get_player();
+    // Player opponent = ((player == Player::One) ? Player::Two : Player::One);
+    // StateType::BoardType board = state.get_board();
+    // std::cout << state.num_pieces(board[player]) << " " <<
+    // state.num_pieces(board[opponent]) << std::endl;
+
+    if (!player_actions and !opponent_actions)
         return true;
     else
         return false;
@@ -208,8 +215,7 @@ std::vector<std::uint8_t> Othello::legal_moves_mask(const StateType &state) {
     return mask;
 }
 
-std::vector<float>
-Othello::decode_policy(const StateType &state,
-                       std::vector<float> policy) {
+std::vector<float> Othello::decode_policy(const StateType &state,
+                                          std::vector<float> policy) {
     return policy;
 }

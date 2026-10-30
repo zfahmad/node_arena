@@ -3,6 +3,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/operators.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -24,7 +25,8 @@ NB_MODULE(connect_four_wrapper, m) {
         .def("from_string", &ConnectFourState::from_string)
         .def("get_player", &ConnectFourState::get_player)
         .def("get_opponent", &ConnectFourState::get_opponent)
-        .def("set_player", &ConnectFourState::set_player);
+        .def("set_player", &ConnectFourState::set_player)
+        .def(nb::self == nb::self);
     state_class.attr("Player") = m.attr("Player");
 
     nb::enum_<ConnectFour::Outcomes>(m, "Outcomes")

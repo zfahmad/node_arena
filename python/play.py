@@ -138,7 +138,9 @@ def main():
     # Load game and create players
     logging.info("Loading game...")
     game_module = game_factory(config_dict["game"]["type_"])
-    game = game_module.Game()
+    # game = game_module.Game(config_dict["game"]["size"][0],
+    #                         config_dict["game"]["size"][1])
+    game = game_module.Game(*config_dict["game"]["params"])
     logging.info(f"Successfully loaded: {game.get_id()}")
 
     # Create state of specified size

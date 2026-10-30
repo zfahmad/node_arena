@@ -7,17 +7,6 @@
 
 const int SHIFTS[] = {1, 12, 11, 10, 1, 12, 11, 10};
 
-// const ChineseCheckersState::BBType SHIFT_MASKS[] = {
-//     0xFEFEFEFEFEFEFEFE, // Right Shift
-//     0xFEFEFEFEFEFEFE00, // Down-right Shift
-//     0xFFFFFFFFFFFFFF00, // Down shift
-//     0x7F7F7F7F7F7F7F00, // Down-left shift
-//     0x7F7F7F7F7F7F7F7F, // Left shift
-//     0x007F7F7F7F7F7F7F, // Up-left shift
-//     0x00FFFFFFFFFFFFFF, // Up shift
-//     0x00FEFEFEFEFEFEFE, // Up-right shift
-// };
-
 const int STEP_SHIFTS[] = {
     1, // North-West
     11, // North-East
@@ -80,9 +69,9 @@ public:
     using ActionType = int;
     using StateType = ChineseCheckersState;
 
-    ChineseCheckers(int num_rows = 6, int num_cols = 6, int num_pieces = 6);
+    ChineseCheckers(int num_rows = 6, int num_cols = 6, int num_pieces = 6, bool forward_only = false);
     std::string get_id() { return "chinese_checkers"; }
-    std::vector<ActionType> get_actions(const StateType &state) const;
+    std::vector<ActionType> get_actions(const StateType &state, bool forward_only = false) const;
     std::vector<ActionType> get_reverse_actions(const StateType &state) const;
     bool has_actions(const StateType &state);
     int apply_action(StateType &state, ActionType action);
@@ -99,6 +88,7 @@ public:
     std::vector<float> decode_policy(const StateType &state,
                                      std::vector<float> policy);
     void print_mask(StateType::BBType mask);
+    StateType::BBType get_backward_moves_mask(int source, bool upper) const;
     StateType::BBType get_steps(StateType::BoardType board, int source) const;
     StateType::BBType is_hop(StateType::BoardType board,
                              ChineseCheckersState::BBType source_bits,

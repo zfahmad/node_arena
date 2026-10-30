@@ -1,10 +1,10 @@
 #include <array>
+#include <bit>
 #include <cassert>
 #include <constants.hpp>
 #include <games/lines_of_action/lines_of_action.hpp>
 #include <games/lines_of_action/lines_of_action_state.hpp>
 #include <iostream>
-#include <bit>
 
 // TODO: Currently the game does not check for validity of states. It is not
 // needed for AlphaZero since AlphaZero cannot traverse to illegal states.
@@ -371,7 +371,14 @@ LinesOfAction::get_actions(const StateType &state) const {
         }
     }
 
+    if (actions.size() == 0)
+        actions.push_back(-1);
+
     return actions;
+}
+
+bool LinesOfAction::has_actions(const StateType &state) {
+    return !(get_actions(state)[0] == -1);
 }
 
 std::vector<LinesOfAction::ActionType>
@@ -383,6 +390,9 @@ LinesOfAction::get_reverse_actions(const StateType &state) const {
 // TODO: Add checks for both apply_action and undo_action to ensure actions are
 // valid.
 int LinesOfAction::apply_action(StateType &state, ActionType action) {
+    if (action == -1)
+        return 0;
+
     // Get source location for move, the direction, and the step size
     std::array<int, 3> inds = action_to_inds(action, num_rows_);
     int source = inds[0];

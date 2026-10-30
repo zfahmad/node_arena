@@ -109,7 +109,8 @@ BBType generate_empties_mask(int num_rows, int num_cols, int num_pieces) {
     return mask;
 }
 
-ChineseCheckers::ChineseCheckers(int num_rows, int num_cols, int num_pieces) {
+ChineseCheckers::ChineseCheckers(int num_rows, int num_cols, int num_pieces,
+                                 bool forward_only) {
     this->num_rows_ = num_rows;
     this->num_cols_ = num_cols;
     this->num_pieces_ = num_pieces;
@@ -228,24 +229,6 @@ BBType ChineseCheckers::is_hop(StateType::BoardType board, BBType source_bits,
     return hop;
 }
 
-// BBType ChineseCheckers::get_hops(StateType::BoardType board, int source)
-// const {
-//     BBType hops = (uint128_t)0;
-//     BBType source_bit = (uint128_t)1;
-//     source_bit = source_bit << source;
-//     BBType new_hops = source_bit;
-//     BBType occupied = board[Player::One] | board[Player::Two];
-//
-//     while (new_hops != hops) {
-//         hops = new_hops;
-//         for (int dir = 0; dir < 6; dir++) {
-//             new_hops = new_hops | is_hop(board, hops, dir);
-//         }
-//     }
-//     hops = hops & ~(this->destinations_mask | occupied);
-//     return hops;
-// }
-
 BBType ChineseCheckers::get_hops(StateType::BoardType board, int source) const {
     BBType source_bit = (uint128_t)1 << source;
     board[Player::One] &= ~source_bit; // the moving piece isn't an obstacle
@@ -280,8 +263,34 @@ int index_to_location(int index, int num_rows) {
     return location;
 }
 
+ChineseCheckersState::BBType
+ChineseCheckers::get_backward_moves_mask(int source, bool upper) const {
+    BBType move_mask = (uint128_t)1 << source;
+    BBType upper_mask =
+        (uint128_t)0x0080100200400FFF | ((uint128_t)0x000000400801002004 << 64);
+    BBType diagonal = (uint128_t)0;
+    diagonal = move_mask;
+    for (int i = 0; i < num_rows_; i++)
+        diagonal |= ((diagonal << 10) & ~destinations_mask);
+    for (int i = 0; i < num_rows_; i++)
+        diagonal |= ((diagonal >> 10) & ~destinations_mask);
+    move_mask = diagonal;
+    if (upper) {
+        for (int i = 0; i < (num_rows_ * 2) - 1; i++) {
+            move_mask |= ((move_mask << 1) & ~destinations_mask);
+            move_mask |= ((move_mask << 10) & ~destinations_mask);
+        }
+    } else {
+        for (int i = 0; i < (num_rows_ * 2) - 1; i++) {
+            move_mask |= ((move_mask >> 1) & ~destinations_mask);
+            move_mask |= ((move_mask >> 10) & ~destinations_mask);
+        }
+    }
+    return move_mask;
+}
+
 std::vector<ChineseCheckers::ActionType>
-ChineseCheckers::get_actions(const StateType &state) const {
+ChineseCheckers::get_actions(const StateType &state, bool forward_only) const {
     std::vector<ChineseCheckers::ActionType> actions;
     BBType bit = (uint128_t)0;
     std::vector<int> sources;
@@ -294,6 +303,12 @@ ChineseCheckers::get_actions(const StateType &state) const {
         BBType steps, hops;
         steps = get_steps(state.get_board(), s);
         hops = get_hops(state.get_board(), s);
+        if (forward_only) {
+            BBType forward_only_mask =
+                get_backward_moves_mask(s, state.get_player() == Player::One);
+            steps &= forward_only_mask;
+            hops &= forward_only_mask;
+        }
         int base = location_to_index(s, num_rows_);
 
         // Collate all step actions

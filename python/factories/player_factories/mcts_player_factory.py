@@ -18,6 +18,7 @@ class PolicyType(Enum):
 
 class EvalFuncType(Enum):
     RANDOM_ROLLOUT = "random_rollout"
+    FORWARD_RANDOM_ROLLOUT = "forward_random_rollout"
 
 
 @dataclass
@@ -58,7 +59,10 @@ POLICY_REGISTRY = {
     PolicyType.MOST_SAMPLED: MostSampled,
 }
 
-EVAL_FUNC_REGISTRY = {EvalFuncType.RANDOM_ROLLOUT: RandomRollout}
+EVAL_FUNC_REGISTRY = {
+    EvalFuncType.RANDOM_ROLLOUT: RandomRollout,
+    EvalFuncType.FORWARD_RANDOM_ROLLOUT: ForwardRandomRollout,
+}
 
 
 class MCTSPlayerFactory:
@@ -157,7 +161,7 @@ class MCTSPlayerFactory:
 
     def make_eval_func(self, cfg: EvalFuncConfig):
         eval_func = EVAL_FUNC_REGISTRY[cfg.type_]
-        if cfg.type_ == EvalFuncType.RANDOM_ROLLOUT:
+        if cfg.type_ == EvalFuncType.RANDOM_ROLLOUT or cfg.type_ == EvalFuncType.FORWARD_RANDOM_ROLLOUT:
             return eval_func(cfg.seed, cfg.max_depth)
         raise ValueError(f"Unknown eval func type: {cfg.type_}")
 

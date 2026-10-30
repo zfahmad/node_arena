@@ -262,3 +262,31 @@ class RandomRollout(EvaluationFunction):
 
     def __repr__(self):
         return f"RandomRollout(seed:{self.seed},max_depth:{self.max_depth})"
+
+# Evaluation function for Chinese checkers
+class ForwardRandomRollout(EvaluationFunction):
+    def __init__(self, seed: int | None = None, max_depth: int = 50) -> None:
+        self.seed: int | None = seed
+        self.rand_ = rnd.default_rng(seed)
+        self.max_depth: int = max_depth
+
+    def rollout(self, game: GameProtocol, state: StateProtocol, depth: int) -> float:
+        if not depth < self.max_depth:
+            return 0.0
+
+        if game.is_terminal(state):
+            utility: float = get_utility(game, state)
+            return -utility
+
+        actions = game.get_actions(state, True)
+        random_action = self.rand_.choice(actions)
+        next_state: StateProtocol = game.get_next_state(state, random_action)
+        utility: float = -self.rollout(game, next_state, depth + 1)
+        return utility
+
+    def __call__(self, game: GameProtocol, state: StateProtocol) -> float:
+        depth = 0
+        return self.rollout(game, state, depth)
+
+    def __repr__(self):
+        return f"ForwardRandomRollout(seed:{self.seed},max_depth:{self.max_depth})"

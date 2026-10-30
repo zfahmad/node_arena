@@ -41,7 +41,7 @@ NB_MODULE(chinese_checkers_wrapper, m) {
              nb::arg("num_cols") = 6, nb::arg("num_pieces") = 6)
         .def("get_id", &ChineseCheckers::get_id)
         .def("reset", &ChineseCheckers::reset)
-        .def("get_actions", &ChineseCheckers::get_actions)
+        .def("get_actions", &ChineseCheckers::get_actions, "state"_a, "forward_only"_a = false)
         .def("get_reverse_actions", &ChineseCheckers::get_reverse_actions)
         .def("apply_action", &ChineseCheckers::apply_action)
         .def("undo_action", &ChineseCheckers::undo_action)

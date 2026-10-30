@@ -48,6 +48,7 @@ public:
     std::string get_id() { return "lines_of_action"; }
     std::vector<ActionType> get_actions(const StateType &state) const;
     std::vector<ActionType> get_reverse_actions(const StateType &state) const;
+    bool has_actions(const StateType &state);
     int apply_action(StateType &state, ActionType action);
     int undo_action(StateType &state, ActionType action);
     StateType get_next_state(const StateType &state, ActionType action);
