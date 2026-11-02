@@ -90,6 +90,8 @@ class Config:
     player: PlayerConfig
     num_intervals: int
     inference_servers: list[InferenceServerConfig] = field(default_factory=list)
+    start_states: list[str] | None = None
+    terminal_states: list[str] | None = None
 
 
 @dataclass
