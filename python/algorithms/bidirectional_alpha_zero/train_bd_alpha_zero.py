@@ -13,7 +13,7 @@ Options:
     -o FILE --output=FILE       # Specify output path for game data
     -v --verbose                # Print to stdout
     --resume                    # Restart self-play training [default: False]
-    --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
+    --max-turns=N               # Maximum number of turns to play before ending game
     --seed=s                    # Master seed for training
     --learning-rate=r           # Learning rate for the optimizer
 """
@@ -26,6 +26,7 @@ import shutil
 import sys
 import time
 import uuid
+import random
 from dataclasses import replace
 from multiprocessing import Process, Queue
 from multiprocessing.synchronize import Event
@@ -150,12 +151,12 @@ def run_backward_game(
     game.reset(initial_state)
 
     state = game_module.State(*cfg.game.size)
-    if cfg.game.initial_state == "":
-        print("Must specify a terminal state!")
-        exit(1)
-    else:
-        state.from_string(cfg.game.initial_state)
-        logging.info(f"[proc {game_proc_id}] Created state from specification.")
+    # if cfg.game.initial_state == "":
+    #     print("Must specify a terminal state!")
+    #     exit(1)
+    # else:
+    #     state.from_string(cfg.game.initial_state)
+    #     logging.info(f"[proc {game_proc_id}] Created state from specification.")
 
     # Create players
     player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
@@ -165,6 +166,14 @@ def run_backward_game(
         ts = int(time.time() * 1e6)
         fname = f"game_{ts}_{uuid.uuid4().hex}"
         P = RetrogradeDataGenerator(cfg.max_turns, player, initial_state)
+
+        if not cfg.terminal_states is None:
+            state_str = random.choice(cfg.terminal_states)
+            state.from_string(state_str)
+            logging.info(f"[proc {game_proc_id}] Created state from specification: {state_str}.")
+        else:
+            exit(1)
+
         logging.info(f"[proc {game_proc_id}] Beginning game.")
         P.play(game, state, f"{cfg.output}/self_play/{fname}.tmp")
         logging.info(f"[proc {game_proc_id}] Game end.")
@@ -308,6 +317,8 @@ def main():
         player=PlayerConfig(**raw_cfg["player"]),
         inference_servers=inference_servers,
         num_intervals=int(raw_cfg.get("num_iterations")),
+        start_states=list(raw_cfg.get("start_states")),
+        terminal_states=list(raw_cfg.get("terminal_states")),
     )
     update_model = mp.Event()
     shutdown = mp.Event()

@@ -13,7 +13,7 @@ Options:
     -o FILE --output=FILE       # Specify output path for game data
     -v --verbose                # Print to stdout
     --resume                    # Restart self-play training [default: False]
-    --max-turns=N               # Maximum number of turns to play before ending game [default: 50]
+    --max-turns=N               # Maximum number of turns to play before ending game
     --seed=s                    # Master seed for training
     --learning-rate=r           # Learning rate for the optimizer
 """
@@ -115,7 +115,7 @@ def run_game(
         os.rename(
             f"{cfg.output}/self_play/{fname}.tmp", f"{cfg.output}/self_play/{fname}.h5"
         )
-    player.shutdown()  # Currently does nothing --- used if playing finite number of games
+    player.shutdown()
 
 
 def run_inference(
