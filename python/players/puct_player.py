@@ -4,7 +4,7 @@ from scipy.special import softmax
 
 from python.game_protocols import ActionType, GameProtocol, StateProtocol
 from python.players.mcts_player import Edge, MCTSPlayer, Node
-from python.players.puct_inference_server import InferenceClient
+from python.players.inference_server import InferenceClient
 
 
 class PUCB:
@@ -111,7 +111,9 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
 
     def evaluate_node(self, game: GameProtocol, node: Node) -> float:
         assert self.inf_client is not None, "No server client attached"
-        value, policy = self.inf_client(node.state)
+        value, policy = self.inf_client([node.state])
+        value = value[0]
+        policy = policy[0]
         mask = np.asarray(game.legal_moves_mask(node.state), dtype=bool)
         if not mask.any():
             node.priors = np.zeros_like(policy)

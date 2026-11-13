@@ -22,11 +22,11 @@ import importlib
 import logging
 import multiprocessing as mp
 import os
+import random
 import shutil
 import sys
 import time
 import uuid
-import random
 from dataclasses import replace
 from multiprocessing import Process, Queue
 from multiprocessing.synchronize import Event
@@ -170,7 +170,9 @@ def run_backward_game(
         if not cfg.terminal_states is None:
             state_str = random.choice(cfg.terminal_states)
             state.from_string(state_str)
-            logging.info(f"[proc {game_proc_id}] Created state from specification: {state_str}.")
+            logging.info(
+                f"[proc {game_proc_id}] Created state from specification: {state_str}."
+            )
         else:
             exit(1)
 
