@@ -379,7 +379,7 @@ def main():
                 shutdown,
             ),
         )
-        for proc_id in range(np.ceil(cfg.num_procs // 2))
+        for proc_id in range(int(np.ceil(cfg.num_procs * 0.8)))
     ]
 
     reverse_actor_processes = [
@@ -394,7 +394,7 @@ def main():
                 shutdown,
             ),
         )
-        for proc_id in range(np.ceil(cfg.num_procs // 2), cfg.num_procs)
+        for proc_id in range(int(np.ceil(cfg.num_procs * 0.8)), cfg.num_procs)
     ]
 
     if arguments["--learning-rate"]:
