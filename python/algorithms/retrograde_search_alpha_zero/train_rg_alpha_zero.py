@@ -1,5 +1,5 @@
 """
-train_rg_alpha_zero.py
+train_alpha_zero.py
 Author: Zaheen Ahmad
 
 Plays games in parallel. The number of games played concurrently depend on the
@@ -22,6 +22,7 @@ import importlib
 import logging
 import multiprocessing as mp
 import os
+import random
 import shutil
 import sys
 import time
@@ -41,12 +42,15 @@ from python.algorithms.retrograde_search_alpha_zero.rg_alpha_zero_learner import
 from python.algorithms.retrograde_search_alpha_zero.rg_alpha_zero_replay_buffer import (
     ReplayBuffer,
 )
+from python.algorithms.retrograde_search_alpha_zero.rg_alpha_zero_retrograde_data_generator import (
+    RetrogradeDataGenerator,
+)
 from python.configs import *
 from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.players.player_protocols import PlayerProtocol
-from python.players.puct_inference_server import InferenceClient
+from python.players.inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 from python.utils.seed_gen import generate_random_seeds
 
@@ -79,7 +83,7 @@ def create_player(
     return player
 
 
-def run_game(
+def run_forward_game(
     game_proc_id: int,
     GF: GameFactory,
     PF: PlayerFactory,
@@ -97,13 +101,16 @@ def run_game(
     # Initialize state
     # Use a specified starting state if provided.
     # Else use initial game state.
+    # NOTE: The forward actor process only starts from the initial state of the
+    # game.
     state = game_module.State(*cfg.game.size)
-    if cfg.game.initial_state == "":
-        game.reset(state)
-        logging.info(f"[proc {game_proc_id}] Created initial state.")
-    else:
-        state.from_string(cfg.game.initial_state)
-        logging.info(f"[proc {game_proc_id}] Created state from specification.")
+    game.reset(state)
+    # if cfg.game.initial_state == "":
+    #     game.reset(state)
+    #     logging.info(f"[proc {game_proc_id}] Created initial state.")
+    # else:
+    #     state.from_string(cfg.game.initial_state)
+    #     logging.info(f"[proc {game_proc_id}] Created state from specification.")
 
     # Create players
     player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
@@ -113,6 +120,62 @@ def run_game(
         ts = int(time.time() * 1e6)
         fname = f"game_{ts}_{uuid.uuid4().hex}"
         P = DataGenerator(cfg.max_turns, player)
+        logging.info(f"[proc {game_proc_id}] Beginning game.")
+        P.play(game, state, f"{cfg.output}/self_play/{fname}.tmp")
+        logging.info(f"[proc {game_proc_id}] Game end.")
+        os.rename(
+            f"{cfg.output}/self_play/{fname}.tmp", f"{cfg.output}/self_play/{fname}.h5"
+        )
+    player.shutdown()
+
+
+def run_backward_game(
+    game_proc_id: int,
+    GF: GameFactory,
+    PF: PlayerFactory,
+    cfg: Config,
+    inference_endpoints: Dict[str, InferenceEndpoints],
+    shutdown: Event,
+):
+    configure_logging(f"{cfg.output}/game_logs/game_{game_proc_id}.log")
+    logging.info(f"[proc {game_proc_id}] Loading game.")
+
+    game_module = GF(cfg.game.type_)
+    game = game_module.Game(*cfg.game.params)
+    logging.info(f"[proc {game_proc_id}] Loaded game: {game.get_id()}")
+
+    # Initialize state
+    # Use a specified starting state if provided.
+    # Else use initial game state.
+    initial_state = game_module.State(*cfg.game.size)
+    game.reset(initial_state)
+
+    state = game_module.State(*cfg.game.size)
+    # if cfg.game.initial_state == "":
+    #     print("Must specify a terminal state!")
+    #     exit(1)
+    # else:
+    #     state.from_string(cfg.game.initial_state)
+    #     logging.info(f"[proc {game_proc_id}] Created state from specification.")
+
+    # Create players
+    player = create_player(game_proc_id, PF, cfg.player, inference_endpoints)
+
+    # Keep playing games to generate data.
+    while not shutdown.is_set():
+        ts = int(time.time() * 1e6)
+        fname = f"game_{ts}_{uuid.uuid4().hex}"
+        P = RetrogradeDataGenerator(cfg.max_turns, player, initial_state)  # type: ignore
+
+        if not cfg.terminal_states is None:
+            state_str = random.choice(cfg.terminal_states)
+            state.from_string(state_str)
+            logging.info(
+                f"[proc {game_proc_id}] Created state from specification: {state_str}."
+            )
+        else:
+            exit(1)
+
         logging.info(f"[proc {game_proc_id}] Beginning game.")
         P.play(game, state, f"{cfg.output}/self_play/{fname}.tmp")
         logging.info(f"[proc {game_proc_id}] Game end.")
@@ -138,7 +201,7 @@ def run_inference(
     model = Model(params.seed, **params.model_cfg.hypers)
 
     logging.info(f"[server {params.name}] Creating inference server")
-    sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
+    sm = importlib.import_module(f"python.players.inference_server")
     inference_server = sm.InferenceServer(
         batch_size=params.batch_size,
         num_actors=params.num_actors,
@@ -256,6 +319,8 @@ def main():
         player=PlayerConfig(**raw_cfg["player"]),
         inference_servers=inference_servers,
         num_intervals=int(raw_cfg.get("num_iterations")),
+        start_states=list(raw_cfg.get("start_states")),
+        terminal_states=list(raw_cfg.get("terminal_states")),
     )
     update_model = mp.Event()
     shutdown = mp.Event()
@@ -304,7 +369,7 @@ def main():
     # Launch actor processes
     actor_processes = [
         Process(
-            target=run_game,
+            target=run_forward_game,
             args=(
                 proc_id,
                 game_factory,
@@ -314,7 +379,22 @@ def main():
                 shutdown,
             ),
         )
-        for proc_id in range(cfg.num_procs)
+        for proc_id in range(np.ceil(cfg.num_procs * 0.8))
+    ]
+
+    reverse_actor_processes = [
+        Process(
+            target=run_backward_game,
+            args=(
+                proc_id,
+                game_factory,
+                player_factory,
+                actor_configs[proc_id],
+                inference_endpoints,
+                shutdown,
+            ),
+        )
+        for proc_id in range(np.ceil(cfg.num_procs * 0.8), cfg.num_procs)
     ]
 
     if arguments["--learning-rate"]:
@@ -346,10 +426,14 @@ def main():
     # Start actors and wait until they finish
     for p in actor_processes:
         p.start()
+    for p in reverse_actor_processes:
+        p.start()
 
     learner_process.start()
 
     for p in actor_processes:
+        p.join()
+    for p in reverse_actor_processes:
         p.join()
     # Close inference process
     for p in inf_processes:

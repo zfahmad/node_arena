@@ -89,7 +89,7 @@ if __name__ == "__main__":
     subprocess.run(
         [
             "python",
-            "python/algorithms/alpha_zero/train_alpha_zero.py",
+            "python/algorithms/retrograde_search_alpha_zero/train_rg_alpha_zero.py",
             str(output_dir / "alpha_zero.yaml"),
             "--output=" + str(output_dir),
         ]
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     subprocess.run(
         [
             "python",
-            "python/algorithms/alpha_zero/evaluate_alpha_zero.py",
+            "python/algorithms/retrograde_search_alpha_zero/evaluate_rg_alpha_zero.py",
             str(output_dir / "eval_alpha_zero.yaml"),
             "--output=" + str(output_dir),
         ]

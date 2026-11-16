@@ -114,7 +114,6 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
         value, policy = self.inf_client([node.state])
         value = value.item()
         policy = policy.flatten()
-        print(policy.shape)
         mask = np.asarray(game.legal_moves_mask(node.state), dtype=bool)
         if not mask.any():
             node.priors = np.zeros_like(policy)
