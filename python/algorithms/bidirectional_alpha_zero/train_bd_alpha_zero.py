@@ -50,7 +50,7 @@ from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.players.player_protocols import PlayerProtocol
-from python.players.puct_inference_server import InferenceClient
+from python.players.inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 from python.utils.seed_gen import generate_random_seeds
 

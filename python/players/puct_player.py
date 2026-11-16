@@ -112,8 +112,9 @@ class PUCTPlayer(MCTSPlayer[ActionType]):
     def evaluate_node(self, game: GameProtocol, node: Node) -> float:
         assert self.inf_client is not None, "No server client attached"
         value, policy = self.inf_client([node.state])
-        value = value[0]
-        policy = policy[0]
+        value = value.item()
+        policy = policy.flatten()
+        print(policy.shape)
         mask = np.asarray(game.legal_moves_mask(node.state), dtype=bool)
         if not mask.any():
             node.priors = np.zeros_like(policy)

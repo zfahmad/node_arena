@@ -42,7 +42,7 @@ from python.configure_logging import configure_logging
 from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.players.player_protocols import PlayerProtocol
-from python.players.puct_inference_server import InferenceClient
+from python.players.inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 from python.utils.seed_gen import generate_random_seeds
 
@@ -134,7 +134,7 @@ def run_inference(
     model = Model(params.seed, **params.model_cfg.hypers)
 
     logging.info(f"[server {params.name}] Creating inference server")
-    sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
+    sm = importlib.import_module(f"python.players.inference_server")
     inference_server = sm.InferenceServer(
         batch_size=params.batch_size,
         num_actors=params.num_actors,

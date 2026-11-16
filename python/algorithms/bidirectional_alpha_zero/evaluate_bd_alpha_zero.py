@@ -42,7 +42,7 @@ from python.factories.game_factory import GameFactory
 from python.factories.player_factory import PlayerFactory
 from python.play import Play
 from python.players.player_protocols import PlayerProtocol
-from python.players.puct_inference_server import InferenceClient
+from python.players.inference_server import InferenceClient
 from python.players.puct_player import PUCTPlayer
 from python.algorithms.bidirectional_alpha_zero.plot_bd_alpha_zero import plot_results
 
