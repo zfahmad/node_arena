@@ -147,7 +147,7 @@ def run_inference(
     model = Model(params.model_cfg.seed, **params.model_cfg.hypers)
 
     logging.info(f"[server {params.name}] Creating inference server")
-    sm = importlib.import_module(f"python.players.{params.type_}_inference_server")
+    sm = importlib.import_module(f"python.players.inference_server")
     inference_server = sm.InferenceServer(
         batch_size=params.batch_size,
         num_actors=params.num_actors,
