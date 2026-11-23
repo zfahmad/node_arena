@@ -219,10 +219,10 @@ def run_inference(
 
 def run_learner(params: LearnerConfig):
     # Delay learning until some games are generated.
-    while len(os.listdir(os.path.join(params.working_dir, "self_play"))) < 50:
-        time.sleep(2)
-    buffer_time = 5
-    time.sleep(buffer_time)
+    # while len(os.listdir(os.path.join(params.working_dir, "self_play"))) < 50:
+    #     time.sleep(2)
+    # buffer_time = 5
+    # time.sleep(buffer_time)
 
     rb = ReplayBuffer(
         seed=params.seed,
@@ -231,7 +231,12 @@ def run_learner(params: LearnerConfig):
         buffer_size=params.buffer_size,
         archive_dir=params.archive_dir,
     )
+
     rb.start_indexing_thread()
+    while sum(rb.file_idx.num_states) < params.batch_size:
+        if params.shutdown.is_set():
+            return
+        time.sleep(1)
 
     learner = Learner(
         params.game_cfg,

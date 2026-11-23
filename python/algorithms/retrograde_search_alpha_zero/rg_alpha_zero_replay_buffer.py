@@ -152,6 +152,9 @@ class ReplayBuffer:
                 # File may still be being written; skip this round
                 continue
 
+            if num_states == 0:
+                continue
+
             archived_path = os.path.join(self.archive_dir, file)
 
             # Atomic move first (so actors can't touch it anymore)
