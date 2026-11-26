@@ -44,6 +44,31 @@ class ReplayBuffer:
 
         os.makedirs(self.self_play_dir, exist_ok=True)
         os.makedirs(self.archive_dir, exist_ok=True)
+        self._load_existing()
+
+    def _load_existing(self) -> None:
+        """
+        On startup, re-index the newest buffer_size files already in the
+        archive and delete the rest, so leftovers from earlier runs don't pile up.
+        """
+        names = sorted(f for f in os.listdir(self.archive_dir) if f.endswith(".h5"))
+        # NOTE: assumes filenames sort chronologically (timestamp / counter prefix)
+        keep = names[-self.buffer_size :] if self.buffer_size > 0 else []
+        stale = names[: len(names) - len(keep)]
+
+        for name in stale:
+            os.remove(os.path.join(self.archive_dir, name))
+
+        for name in keep:
+            path = os.path.join(self.archive_dir, name)
+            try:
+                with h5py.File(path, "r") as f:
+                    n = f["states"].shape[0]  # type: ignore
+            except OSError:
+                os.remove(path)  # corrupt/partial file
+                continue
+            self.file_idx.files.append(path)
+            self.file_idx.num_states.append(n)
 
     def _snapshot_index(self) -> Tuple[list[str], np.ndarray]:
         """
@@ -158,13 +183,20 @@ class ReplayBuffer:
             os.rename(file_path, archived_path)
 
             # Now mutate index under lock
+            evicted = []
             with self._lock:
                 while len(self.file_idx.files) >= self.buffer_size:
-                    self.file_idx.files.popleft()
+                    evicted.append(self.file_idx.files.popleft())
                     self.file_idx.num_states.popleft()
 
                 self.file_idx.files.append(archived_path)
                 self.file_idx.num_states.append(num_states)
+
+            for path in evicted:
+                try:
+                    os.remove(path)
+                except FileNotFoundError:
+                    pass
 
     def start_indexing_thread(self, interval_seconds: float = 5.0):
         def loop():
