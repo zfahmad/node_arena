@@ -445,7 +445,7 @@ bool LinesOfAction::is_winner(const StateType &state, Player player) {
     // Checks if the state is a win for the player passed as an argument
     BBType bit = 1ULL;
     BBType prev_bit = 0ULL;
-    BBType player_bb = state.get_board()[state.get_player()];
+    BBType player_bb = state.get_board()[player];
 
     // Find the first bit
     while (!(bit & player_bb))
